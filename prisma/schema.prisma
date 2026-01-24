@@ -1,0 +1,429 @@
+// UFC Prediction Platform - Prisma Schema
+// https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Fighter {
+  id                  String   @id @default(cuid())
+  ufcStatsId          String   @unique
+  name                String
+  nickname            String?
+  imageUrl            String?
+  nationality         String?
+  weightClass         String?
+  hometown            String?
+  trainingCamp        String?
+
+  // Physical
+  stance              String   @default("orthodox")
+  height              Int?     // in cm
+  reach               Int?     // in cm
+  legReach            Int?     // in cm
+  dateOfBirth         DateTime?
+
+  // Record
+  wins                Int      @default(0)
+  losses              Int      @default(0)
+  draws               Int      @default(0)
+  noContests          Int      @default(0)
+  winByKO             Int      @default(0)
+  winByTKO            Int      @default(0)
+  winBySub            Int      @default(0)
+  winByDec            Int      @default(0)
+
+  // Classification
+  fightingStyle       String   @default("MMA")  // MMA, Striker, Grappler
+  fightingApproach    String?  // pressure, counter, volume, point
+
+  // Historical Performance (CRITICAL for predictions)
+  currentStreak       Int      @default(0)  // positive = wins, negative = losses
+  last5Record         String   @default("0-0")
+  finishRateLast5     Float    @default(0)
+  careerFinishRate    Float    @default(0)
+  daysSinceLastFight  Int      @default(0)
+  timesKOd            Int      @default(0)
+  timesSubmitted      Int      @default(0)
+  avgFightTimeSeconds Int      @default(0)
+
+  // Championship Experience
+  fiveRoundFights     Int      @default(0)
+  winsInLateRounds    Int      @default(0)  // rounds 4 & 5
+  titleFights         Int      @default(0)
+  titleWins           Int      @default(0)
+
+  // Weight History
+  naturalWeightClass  String?
+  hasMovedUp          Boolean  @default(false)
+  hasMovedDown        Boolean  @default(false)
+  missedWeightCount   Int      @default(0)
+
+  // Ranking
+  currentRank         Int?     // null = unranked
+  peakRank            Int?
+  isChampion          Boolean  @default(false)
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  // Relations
+  stats               FighterStats?
+  stancePerformance   StancePerformance[]
+  stylePerformance    StylePerformance[]
+  fightHistory        FightHistory[]
+  fightsAsA           Fight[]  @relation("FighterA")
+  fightsAsB           Fight[]  @relation("FighterB")
+  fightsWon           Fight[]  @relation("Winner")
+  predictionsFor      Prediction[] @relation("PredictedFighter")
+}
+
+model FighterStats {
+  id         String   @id @default(cuid())
+  fighterId  String   @unique
+  fighter    Fighter  @relation(fields: [fighterId], references: [id], onDelete: Cascade)
+
+  // Striking
+  slpm       Float    @default(0)  // Significant strikes landed per minute
+  strAcc     Float    @default(0)  // Striking accuracy (percentage)
+  sapm       Float    @default(0)  // Significant strikes absorbed per minute
+  strDef     Float    @default(0)  // Striking defense (percentage)
+
+  // Grappling
+  tdAvg      Float    @default(0)  // Takedowns average per 15 min
+  tdAcc      Float    @default(0)  // Takedown accuracy (percentage)
+  tdDef      Float    @default(0)  // Takedown defense (percentage)
+  subAvg     Float    @default(0)  // Submission attempts per 15 min
+
+  // Advanced metrics
+  knockdownsLanded   Float?   // per 15 min
+  knockdownsAbsorbed Float?   // per 15 min
+  avgControlTime     Int?     // in seconds per fight
+  reversals          Float?   // per 15 min
+
+  updatedAt  DateTime @updatedAt
+}
+
+model StancePerformance {
+  id             String  @id @default(cuid())
+  fighterId      String
+  fighter        Fighter @relation(fields: [fighterId], references: [id], onDelete: Cascade)
+
+  opponentStance String  // orthodox, southpaw, switch
+  wins           Int     @default(0)
+  losses         Int     @default(0)
+  draws          Int     @default(0)
+  koWins         Int     @default(0)
+  koLosses       Int     @default(0)
+  subWins        Int     @default(0)
+  subLosses      Int     @default(0)
+
+  @@unique([fighterId, opponentStance])
+}
+
+model StylePerformance {
+  id            String  @id @default(cuid())
+  fighterId     String
+  fighter       Fighter @relation(fields: [fighterId], references: [id], onDelete: Cascade)
+
+  opponentStyle String  // MMA, Striker, Grappler
+  wins          Int     @default(0)
+  losses        Int     @default(0)
+  draws         Int     @default(0)
+  avgFightTime  Int?    // in seconds
+
+  @@unique([fighterId, opponentStyle])
+}
+
+model FightHistory {
+  id              String   @id @default(cuid())
+  fighterId       String
+  fighter         Fighter  @relation(fields: [fighterId], references: [id], onDelete: Cascade)
+
+  eventDate       DateTime
+  eventName       String
+  opponent        String
+  opponentId      String?
+  opponentRank    Int?
+  opponentStance  String?
+  opponentStyle   String?
+
+  outcome         String   // win, loss, draw, nc
+  method          String   // KO, TKO, SUB, DEC, etc.
+  methodDetail    String?  // e.g., "rear naked choke", "punches"
+  round           Int
+  time            String
+  scheduledRounds Int      @default(3)
+
+  wasFinished     Boolean  @default(false)  // Fighter was finished
+  didFinish       Boolean  @default(false)  // Fighter finished opponent
+
+  // Fight stats
+  sigStrikesLanded    Int?
+  sigStrikesAttempted Int?
+  takedownsLanded     Int?
+  takedownsAttempted  Int?
+  submissionAttempts  Int?
+  controlTime         Int?  // in seconds
+
+  createdAt       DateTime @default(now())
+
+  @@index([fighterId, eventDate])
+}
+
+model Event {
+  id          String   @id @default(cuid())
+  ufcStatsId  String?  @unique
+  name        String
+  shortName   String?
+  date        DateTime
+  venue       String?
+  city        String?
+  state       String?
+  country     String?
+
+  // Environmental factors
+  altitude    Int      @default(0)  // in meters
+  timezone    String?
+  cageSize    String   @default("standard")  // standard (30ft) or small (25ft)
+
+  isCompleted Boolean  @default(false)
+  isPPV       Boolean  @default(false)
+  isFightNight Boolean @default(false)
+
+  fights      Fight[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Fight {
+  id              String   @id @default(cuid())
+  eventId         String
+  event           Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  fighterAId      String
+  fighterA        Fighter  @relation("FighterA", fields: [fighterAId], references: [id])
+  fighterBId      String
+  fighterB        Fighter  @relation("FighterB", fields: [fighterBId], references: [id])
+
+  weightClass     String
+  isTitleFight    Boolean  @default(false)
+  isInterimTitle  Boolean  @default(false)
+  isMainEvent     Boolean  @default(false)
+  isCoMain        Boolean  @default(false)
+  scheduledRounds Int      @default(3)
+  fightOrder      Int      @default(0)  // Higher = later on card
+  cardSection     String   @default("main")  // main, prelims, early_prelims
+
+  // Betting odds (American format: +150 or -200)
+  fighterAOdds    Int?
+  fighterBOdds    Int?
+  openingAOdds    Int?
+  openingBOdds    Int?
+
+  // Result (null if not yet fought)
+  winnerId        String?
+  winner          Fighter? @relation("Winner", fields: [winnerId], references: [id])
+  method          String?
+  methodDetail    String?
+  round           Int?
+  time            String?
+
+  predictionCorrect Boolean?
+
+  isCompleted     Boolean  @default(false)
+
+  predictions     Prediction[]
+  matchupAnalysis MatchupAnalysis?
+  oddsHistory     OddsHistory[]
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([eventId, fightOrder])
+}
+
+model Prediction {
+  id                String  @id @default(cuid())
+  fightId           String
+  fight             Fight   @relation(fields: [fightId], references: [id], onDelete: Cascade)
+
+  predictedWinnerId String
+  predictedWinner   Fighter @relation("PredictedFighter", fields: [predictedWinnerId], references: [id])
+
+  // Win probabilities
+  fighterAWinProb   Float
+  fighterBWinProb   Float
+
+  // Method probabilities
+  fighterAByKO      Float   @default(0)
+  fighterAByTKO     Float   @default(0)
+  fighterABySub     Float   @default(0)
+  fighterAByDec     Float   @default(0)
+  fighterBByKO      Float   @default(0)
+  fighterBByTKO     Float   @default(0)
+  fighterBBySub     Float   @default(0)
+  fighterBByDec     Float   @default(0)
+
+  confidence        Float
+  modelVersion      String  @default("1.0.0")
+  factors           Json    // Detailed factor breakdown
+  insights          String[] // Key matchup insights
+  wasCorrect        Boolean?
+
+  createdAt         DateTime @default(now())
+
+  @@unique([fightId, modelVersion])
+  @@index([fightId])
+}
+
+model ModelPerformance {
+  id                    String   @id @default(cuid())
+  modelVersion          String
+  totalPredictions      Int      @default(0)
+  correctPredictions    Int      @default(0)
+  accuracy              Float    @default(0)
+
+  // By confidence tier
+  highConfidenceTotal   Int      @default(0)  // >70%
+  highConfidenceCorrect Int      @default(0)
+  medConfidenceTotal    Int      @default(0)  // 55-70%
+  medConfidenceCorrect  Int      @default(0)
+  lowConfidenceTotal    Int      @default(0)  // <55%
+  lowConfidenceCorrect  Int      @default(0)
+
+  // By method
+  koCorrect             Int      @default(0)
+  subCorrect            Int      @default(0)
+  decCorrect            Int      @default(0)
+
+  periodStart           DateTime
+  periodEnd             DateTime
+  createdAt             DateTime @default(now())
+
+  @@unique([modelVersion, periodStart])
+}
+
+// Injury tracking for fighters
+model FighterInjury {
+  id            String    @id @default(cuid())
+  fighterId     String
+
+  bodyPart      String    // knee, shoulder, hand, back, leg, head, neck
+  severity      String    // minor, moderate, major, career_threatening
+  description   String?
+
+  occurredDate  DateTime?
+  reportedDate  DateTime  @default(now())
+  recoveryDate  DateTime?
+  isRecovered   Boolean   @default(false)
+
+  affectsFight  Boolean   @default(true)  // Still impacts performance
+  source        String?   // News source or official announcement
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([fighterId])
+}
+
+// Training camp intelligence
+model CampIntelligence {
+  id            String    @id @default(cuid())
+  fighterId     String
+  fightId       String?   // Optional: linked to specific fight
+
+  // Camp details
+  campWeeks     Int?      // Duration of camp
+  isShortNotice Boolean   @default(false)  // <4 weeks
+  campChanged   Boolean   @default(false)  // Recently switched camps
+  newCampName   String?
+
+  // Weight/conditioning
+  weightIssues  Boolean   @default(false)
+  missedWeight  Boolean   @default(false)
+  drainedFromCut Boolean  @default(false)
+
+  // Mental/personal
+  personalIssues Boolean  @default(false)
+  lowConfidence  Boolean  @default(false)
+  highConfidence Boolean  @default(false)
+
+  // Sparring partners / preparation
+  sparringQuality String? // elite, good, average, poor
+  specificPrep    Boolean @default(false)  // Brought in specific sparring partners
+
+  // Source
+  source        String?
+  reportedDate  DateTime  @default(now())
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([fighterId])
+  @@index([fightId])
+}
+
+// AI-generated matchup analysis
+model MatchupAnalysis {
+  id                  String   @id @default(cuid())
+  fightId             String   @unique
+  fight               Fight    @relation(fields: [fightId], references: [id], onDelete: Cascade)
+
+  // AI-generated content
+  matchupSummary      String   // 2-3 sentence matchup overview
+  pickExplanation     String   // Paragraph explaining the pick
+  keyFactorNarrative  String?  // Optional deeper analysis
+
+  // Structured data for display
+  recommendedPick     String              // "fighterA" or "fighterB"
+  recommendedFighter  String              // Fighter name
+  winProbability      Float
+  confidenceLevel     String              // "high", "medium", "low"
+
+  // Factor breakdown for visualization
+  factorBreakdown     Json                // Array of factor objects
+
+  // Betting insight
+  bettingInsight      String?             // Optional betting angle
+  cautionFlags        String[]            // Risk factors to consider
+
+  // Metadata
+  modelUsed           String   @default("claude-sonnet-4-20250514")
+  tokensUsed          Int?
+  generatedAt         DateTime @default(now())
+
+  @@index([fightId])
+}
+
+// Odds history for tracking line movement
+model OddsHistory {
+  id            String   @id @default(cuid())
+  fightId       String
+  fight         Fight    @relation(fields: [fightId], references: [id], onDelete: Cascade)
+
+  source        String   // bookmaker key or "consensus"
+  fighterAOdds  Int      // American format
+  fighterBOdds  Int      // American format
+
+  timestamp     DateTime @default(now())
+
+  @@index([fightId, timestamp])
+}
+
+// Sync status tracking
+model SyncLog {
+  id          String   @id @default(cuid())
+  syncType    String   // "full", "quick", "odds", "fighters"
+  status      String   // "started", "completed", "failed"
+  itemsProcessed Int   @default(0)
+  errors      Int      @default(0)
+  errorMessages String[]
+  startedAt   DateTime @default(now())
+  completedAt DateTime?
+}
