@@ -12,10 +12,12 @@ const prisma = new PrismaClient({ adapter });
 async function generatePredictions() {
   console.log(`Generating predictions with model ${MODEL_VERSION}...\n`);
 
-  // Get all UFC 324 fights
+  // Get all fights for the latest upcoming event
+  const eventName = process.argv[2] || 'UFC 325';
   const fights = await prisma.fight.findMany({
     where: {
-      event: { name: { contains: 'UFC 324' } }
+      event: { name: { contains: eventName } },
+      isCompleted: false,
     },
     include: {
       fighterA: { include: { stats: true } },
