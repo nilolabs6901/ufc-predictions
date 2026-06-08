@@ -7,6 +7,9 @@ export const metadata = {
   description: 'Build smart parlays with correlation analysis and edge calculation',
 };
 
+// Live prediction data — render per request, not at build time.
+export const dynamic = 'force-dynamic';
+
 export default async function ParlayPage() {
   // Get upcoming fights with predictions
   const upcomingEvents = await prisma.event.findMany({
@@ -69,18 +72,18 @@ export default async function ParlayPage() {
 
   return (
     <main className="min-h-screen bg-[#0d0d0d]">
-      {/* Header */}
-      <div className="border-b border-gray-800">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center gap-4">
-            <Link href="/" className="text-gray-400 hover:text-white transition-colors">
-              ← Back
-            </Link>
-            <div>
-              <h1 className="text-2xl font-bold text-white">Parlay Builder</h1>
-              <p className="text-sm text-gray-400">Build parlays with correlation analysis and edge calculation</p>
-            </div>
-          </div>
+      {/* Header — editorial dark with red accent */}
+      <div style={{ backgroundColor: '#111111', borderTop: '4px solid #d20a0a' }} className="border-b border-[#1f1f1f]">
+        <div className="max-w-7xl mx-auto px-4 py-8">
+          <Link
+            href="/"
+            className="text-gray-400 hover:text-[#d20a0a] transition-colors inline-flex items-center gap-1 mb-4 uppercase"
+            style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '0.8rem', letterSpacing: '0.08em' }}
+          >
+            ← Back
+          </Link>
+          <h1 className="ufc-section-title text-3xl text-white">Parlay Builder</h1>
+          <p className="text-sm text-gray-400 mt-2" style={{ paddingLeft: '1rem' }}>Build parlays with correlation analysis and edge calculation</p>
         </div>
       </div>
 

@@ -9,6 +9,9 @@ interface PageProps {
   params: Promise<{ id: string }>;
 }
 
+// Live event/prediction data — render per request, not at build time.
+export const dynamic = 'force-dynamic';
+
 async function getEvent(id: string) {
   const event = await prisma.event.findUnique({
     where: { id },
@@ -113,12 +116,13 @@ export default async function EventPage({ params }: PageProps) {
 
   return (
     <div className="min-h-screen bg-[#0d0d0d]">
-      {/* Header */}
-      <header className="bg-[#1a1a1a] border-b border-[#3a3a3a]">
-        <div className="max-w-6xl mx-auto px-4 py-4">
+      {/* Back bar */}
+      <div className="bg-[#0d0d0d] border-b border-[#1f1f1f]">
+        <div className="max-w-6xl mx-auto px-4 py-3">
           <Link
             href="/"
-            className="text-gray-400 hover:text-white text-sm inline-flex items-center gap-1 transition-colors"
+            className="text-gray-400 hover:text-[#d20a0a] text-sm inline-flex items-center gap-1 transition-colors uppercase tracking-wide"
+            style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.08em' }}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -126,39 +130,39 @@ export default async function EventPage({ params }: PageProps) {
             Back to Events
           </Link>
         </div>
-      </header>
+      </div>
 
-      {/* Event Header */}
-      <div className="bg-gradient-to-r from-[#d20a0a] to-[#a00808] py-8 relative overflow-hidden">
+      {/* Event Header — editorial dark with red accent */}
+      <div className="py-10 relative overflow-hidden" style={{ backgroundColor: '#111111', borderTop: '4px solid #d20a0a' }}>
         {/* Background pattern */}
-        <div className="absolute inset-0 opacity-10">
+        <div className="absolute inset-0 opacity-[0.06]">
           <div className="absolute inset-0" style={{
-            backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.1) 10px, rgba(255,255,255,0.1) 20px)'
+            backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.4) 10px, rgba(255,255,255,0.4) 20px)'
           }} />
         </div>
 
         <div className="max-w-6xl mx-auto px-4 relative">
-          <div className="flex flex-wrap items-center gap-2 mb-2">
+          <div className="flex flex-wrap items-center gap-2 mb-3">
             {event.isPPV && (
-              <span className="bg-[#c9a227] text-black text-xs font-bold px-2 py-1 rounded">
+              <span style={{ backgroundColor: '#d20a0a', color: '#fff', fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '0.65rem', letterSpacing: '0.15em' }} className="uppercase px-2 py-1">
                 PPV
               </span>
             )}
             {event.isCompleted && (
-              <span className="bg-gray-600 text-white text-xs font-bold px-2 py-1 rounded">
+              <span className="bg-gray-700 text-white text-xs font-bold px-2 py-1 uppercase tracking-widest">
                 COMPLETED
               </span>
             )}
             {!event.isCompleted && isUpcoming && (
-              <span className="bg-green-600 text-white text-xs font-bold px-2 py-1 rounded animate-pulse">
+              <span style={{ border: '1px solid #d20a0a', color: '#d20a0a', fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '0.65rem', letterSpacing: '0.15em' }} className="uppercase px-2 py-1">
                 UPCOMING
               </span>
             )}
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
+          <h1 className="text-4xl md:text-6xl font-black text-white mb-3" style={{ fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: '0.02em', lineHeight: 0.95 }}>
             {event.name}
           </h1>
-          <div className="flex flex-wrap gap-4 text-gray-200 mb-4">
+          <div className="flex flex-wrap gap-4 text-gray-300 mb-4">
             <span className="flex items-center gap-1">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -298,16 +302,6 @@ export default async function EventPage({ params }: PageProps) {
           </p>
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className="border-t border-[#3a3a3a] py-6 mt-8">
-        <div className="max-w-6xl mx-auto px-4 text-center text-gray-500 text-sm">
-          <p>
-            Predictions are generated using AI and historical data analysis.
-            Not financial advice. Gamble responsibly.
-          </p>
-        </div>
-      </footer>
     </div>
   );
 }

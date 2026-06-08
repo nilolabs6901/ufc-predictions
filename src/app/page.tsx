@@ -1,506 +1,552 @@
+'use client';
+
+/**
+ * UFC PREDICTIONS — HOME PAGE
+ * Design: UFC.com Editorial / Sports Broadcast Dark (ported from Manus redesign)
+ * Typography: Barlow Condensed (headings, all-caps) + Barlow (body)
+ * Colors: #0D0D0D bg, #D20A0A accent, white text
+ * Event: UFC Freedom 250 — Topuria vs Gaethje, The White House, Jun 14 2026
+ * Navbar + Footer are provided globally by the root layout.
+ */
+
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { prisma } from '@/lib/database/prisma';
-import { format } from 'date-fns';
-import CountdownTimer from '@/components/ui/CountdownTimer';
-import AccuracyTracker from '@/components/ui/AccuracyTracker';
+import {
+  ChevronRight,
+  TrendingUp,
+  Target,
+  Zap,
+  Shield,
+  Clock,
+  BarChart3,
+  ExternalLink,
+  ArrowRight,
+  Award,
+  Activity,
+} from 'lucide-react';
 
-async function getUpcomingEvents() {
-  try {
-    const events = await prisma.event.findMany({
-      where: {
-        date: { gte: new Date() },
-        isCompleted: false,
-      },
-      orderBy: { date: 'asc' },
-      take: 5,
-      include: {
-        fights: {
-          orderBy: { fightOrder: 'desc' },
-          take: 1,
-          include: {
-            fighterA: {
-              select: { name: true, isChampion: true, imageUrl: true },
-            },
-            fighterB: {
-              select: { name: true, isChampion: true, imageUrl: true },
-            },
-          },
-        },
-        _count: { select: { fights: true } },
-      },
-    });
-    return events;
-  } catch (error) {
-    console.error('Failed to fetch events:', error);
-    return [];
-  }
-}
+// ─── Local background assets (downloaded from the redesign handoff) ──────────
+const HERO_BG = '/hero-freedom250.webp';
+const OCTAGON_BG = '/event-card-bg.webp';
+const STATS_BG = '/stats-bg.webp';
 
-
-async function getRecentEvents() {
-  try {
-    const events = await prisma.event.findMany({
-      where: {
-        isCompleted: true,
-      },
-      orderBy: { date: 'desc' },
-      take: 3,
-      include: {
-        _count: { select: { fights: true } },
-      },
-    });
-    return events;
-  } catch (error) {
-    console.error('Failed to fetch recent events:', error);
-    return [];
-  }
-}
-
-const factors = [
+// ─── Data — UFC Freedom 250 (scraped from UFC.com, Jun 8 2026) ───────────────
+const upcomingEvents = [
   {
-    title: 'Style Analysis',
-    description: 'Grapplers vs Strikers, pressure vs counter fighters',
-    weight: '15%',
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-      </svg>
-    ),
+    id: 'ufc-freedom-250',
+    name: 'UFC Freedom 250',
+    date: 'Sun, Jun 14, 2026',
+    time: '8:00 PM EDT',
+    location: 'The White House, Washington, D.C.',
+    type: 'PPV',
+    isLive: false,
+    subtitle: 'Presented by Crypto.com and RAM',
+    watchLink: 'https://ufc.ac/4v2K4zW',
+    mainEvent: {
+      fighter1: '(C) Ilia Topuria',
+      fighter2: '(IC) Justin Gaethje',
+      division: 'Lightweight Title Bout',
+    },
+    mainCard: [
+      { fighter1: 'Ilia Topuria', fighter2: 'Justin Gaethje', division: 'Lightweight Title Bout', rank1: 'C', rank2: 'IC', odds1: null, odds2: null },
+      { fighter1: 'Alex Pereira', fighter2: 'Ciryl Gane', division: 'Heavyweight Interim Title Bout', rank1: '#1', rank2: null, odds1: -115, odds2: -105 },
+      { fighter1: "Sean O'Malley", fighter2: 'Aiemann Zahabi', division: 'Bantamweight Bout', rank1: '#3', rank2: '#6', odds1: -360, odds2: 280 },
+      { fighter1: 'Josh Hokit', fighter2: 'Derrick Lewis', division: 'Heavyweight Bout', rank1: '#5', rank2: '#9', odds1: -330, odds2: 265 },
+      { fighter1: 'Mauricio Ruffy', fighter2: 'Michael Chandler', division: 'Lightweight Bout', rank1: '#9', rank2: '#13', odds1: -700, odds2: 500 },
+      { fighter1: 'Bo Nickal', fighter2: 'Kyle Daukaus', division: 'Middleweight Bout', rank1: null, rank2: null, odds1: -300, odds2: 240 },
+      { fighter1: 'Diego Lopes', fighter2: 'Steve Garcia', division: 'Featherweight Bout', rank1: '#2', rank2: '#9', odds1: -185, odds2: 155 },
+    ],
+    fights: 7,
   },
   {
-    title: 'Striking Stats',
-    description: 'SLPM, accuracy, defense, absorption rate',
-    weight: '12%',
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-      </svg>
-    ),
+    id: 'ufc-fight-night-june-20-2026',
+    name: 'UFC Fight Night: Kape vs Horiguchi',
+    date: 'Sat, Jun 20, 2026',
+    time: '6:00 PM EDT',
+    location: 'UFC APEX, Las Vegas, NV',
+    type: 'Fight Night',
+    isLive: false,
+    subtitle: null,
+    watchLink: null,
+    mainEvent: { fighter1: 'Manel Kape', fighter2: 'Kyoji Horiguchi', division: 'Flyweight Bout' },
+    mainCard: [],
+    fights: null,
   },
   {
-    title: 'Grappling Stats',
-    description: 'Takedown avg, accuracy, defense, submissions',
-    weight: '12%',
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-      </svg>
-    ),
+    id: 'ufc-fight-night-june-27-2026',
+    name: 'UFC Fight Night: Fiziev vs Torres',
+    date: 'Sat, Jun 27, 2026',
+    time: '1:00 PM EDT',
+    location: 'National Gymnastics Arena, Baku, Azerbaijan',
+    type: 'Fight Night',
+    isLive: false,
+    subtitle: null,
+    watchLink: null,
+    mainEvent: { fighter1: 'Rafael Fiziev', fighter2: 'Ignacio Torres', division: 'Lightweight Bout' },
+    mainCard: [],
+    fights: null,
   },
   {
-    title: 'Historical Form',
-    description: 'Win streaks, recent performance, ring rust',
-    weight: '12%',
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-      </svg>
-    ),
+    id: 'ufc-329',
+    name: 'UFC 329: McGregor vs Holloway 2',
+    date: 'Sat, Jul 11, 2026',
+    time: '10:00 PM EDT',
+    location: 'T-Mobile Arena, Las Vegas, NV',
+    type: 'PPV',
+    isLive: false,
+    subtitle: null,
+    watchLink: null,
+    mainEvent: { fighter1: 'Conor McGregor', fighter2: 'Max Holloway', division: 'Featherweight Bout' },
+    mainCard: [],
+    fights: null,
   },
   {
-    title: 'Market Signal',
-    description: 'Betting odds implied probability',
-    weight: '10%',
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-    ),
-  },
-  {
-    title: 'Durability',
-    description: 'Times KOd, times submitted, chin status',
-    weight: '8%',
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-      </svg>
-    ),
-  },
-  {
-    title: 'Championship Exp',
-    description: '5-round fight experience and late round wins',
-    weight: '4%',
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-      </svg>
-    ),
-  },
-  {
-    title: 'Environment',
-    description: 'Altitude, cage size, travel distance',
-    weight: '8%',
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-    ),
+    id: 'ufc-fight-night-july-25-2026',
+    name: 'UFC Fight Night: Ankalaev vs Rountree Jr.',
+    date: 'Sat, Jul 25, 2026',
+    time: '1:00 PM EDT',
+    location: 'Etihad Arena, Abu Dhabi, UAE',
+    type: 'Fight Night',
+    isLive: false,
+    subtitle: null,
+    watchLink: null,
+    mainEvent: { fighter1: 'Magomed Ankalaev', fighter2: 'Khalil Rountree Jr.', division: 'Light Heavyweight Bout' },
+    mainCard: [],
+    fights: null,
   },
 ];
 
-export default async function Home() {
-  const [upcomingEvents, recentEvents] = await Promise.all([
-    getUpcomingEvents(),
-    getRecentEvents(),
-  ]);
+const recentEvents = [
+  { id: 'ufc-fight-night-june-6-2026', name: 'UFC Fight Night: Muhammad vs Bonfim', date: 'Sat, Jun 6, 2026', fights: null },
+  { id: 'ufc-fight-night-may-30-2026', name: 'UFC Fight Night: Song vs Figueiredo', date: 'Sat, May 30, 2026', fights: null },
+  { id: 'ufc-fight-night-may-16-2026', name: 'UFC Fight Night: Allen vs Costa', date: 'Sat, May 16, 2026', fights: null },
+  { id: 'ufc-fight-night-may-9-2026', name: 'UFC Fight Night: Chimaev vs Strickland', date: 'Sat, May 9, 2026', fights: null },
+];
 
+const modelFactors = [
+  { label: 'Style Analysis', pct: 15, desc: 'Grapplers vs Strikers, pressure vs counter fighters', icon: Target },
+  { label: 'Striking Stats', pct: 12, desc: 'SLPM, accuracy, defense, absorption rate', icon: Zap },
+  { label: 'Grappling Stats', pct: 12, desc: 'Takedown avg, accuracy, defense, submissions', icon: Shield },
+  { label: 'Historical Form', pct: 12, desc: 'Win streaks, recent performance, ring rust', icon: TrendingUp },
+  { label: 'Market Signal', pct: 10, desc: 'Betting odds implied probability', icon: BarChart3 },
+  { label: 'Durability', pct: 8, desc: "Times KO'd, times submitted, chin status", icon: Activity },
+  { label: 'Championship Exp', pct: 4, desc: '5-round fight experience and late round wins', icon: Award },
+  { label: 'Environment', pct: 8, desc: 'Altitude, cage size, travel distance', icon: Clock },
+];
+
+const keyFindings = [
+  'UFC favorites win ~66% of the time (not 75% as commonly cited)',
+  'Southpaws have ~3% advantage vs orthodox fighters',
+  'Grapplers beat strikers ~60% of the time',
+  'High altitude (>1500m) significantly impacts cardio',
+];
+
+// ─── Hero Section ─────────────────────────────────────────────────────────────
+function HeroSection() {
   const nextEvent = upcomingEvents[0];
-  const mainEventFight = nextEvent?.fights[0];
-  const fighterAImage = mainEventFight?.fighterA?.imageUrl;
-  const fighterBImage = mainEventFight?.fighterB?.imageUrl;
 
   return (
-    <div className="min-h-screen bg-[#0d0d0d]">
-      {/* Hero Section */}
-      <header className="relative overflow-hidden min-h-[500px] md:min-h-[600px]">
-        {/* Background gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#d20a0a]/30 via-[#1a1a1a] to-[#0d0d0d]" />
+    <section style={{ position: 'relative', width: '100%', minHeight: '560px', overflow: 'hidden', backgroundColor: '#0D0D0D' }}>
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          backgroundImage: `url(${HERO_BG})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center 20%',
+          backgroundRepeat: 'no-repeat',
+        }}
+      />
+      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.55) 50%, rgba(0,0,0,0.3) 100%)' }} />
+      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0) 60%)' }} />
 
-        {/* Fighter images on sides */}
-        {fighterAImage && (
-          <div
-            className="absolute left-0 top-0 bottom-0 w-1/3 bg-contain bg-left bg-no-repeat opacity-40 hidden md:block"
-            style={{
-              backgroundImage: `url(${fighterAImage})`,
-              maskImage: 'linear-gradient(to right, black 50%, transparent 100%)',
-              WebkitMaskImage: 'linear-gradient(to right, black 50%, transparent 100%)',
-            }}
-          />
-        )}
-        {fighterBImage && (
-          <div
-            className="absolute right-0 top-0 bottom-0 w-1/3 bg-contain bg-right bg-no-repeat opacity-40 hidden md:block"
-            style={{
-              backgroundImage: `url(${fighterBImage})`,
-              maskImage: 'linear-gradient(to left, black 50%, transparent 100%)',
-              WebkitMaskImage: 'linear-gradient(to left, black 50%, transparent 100%)',
-            }}
-          />
-        )}
+      <div
+        className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8"
+        style={{ position: 'relative', zIndex: 10, paddingTop: '80px', paddingBottom: '80px', minHeight: '560px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}
+      >
+        <div style={{ maxWidth: '680px' }}>
+          <div className="flex items-center gap-3 mb-4 animate-slide-up">
+            <span
+              style={{
+                backgroundColor: 'rgba(255,255,255,0.15)',
+                color: '#FFFFFF',
+                fontFamily: "'Barlow Condensed', sans-serif",
+                fontWeight: 700,
+                fontSize: '0.7rem',
+                letterSpacing: '0.15em',
+                textTransform: 'uppercase',
+                padding: '3px 10px',
+                border: '1px solid rgba(255,255,255,0.3)',
+              }}
+            >
+              {nextEvent.type} · Next Event
+            </span>
+          </div>
 
-        {/* Center gradient overlay for readability */}
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#0d0d0d]/90 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0d0d0d] via-transparent to-[#0d0d0d]/70" />
+          <p
+            className="animate-slide-up-delay-1"
+            style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 600, fontSize: 'clamp(0.75rem, 1.5vw, 0.9rem)', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)', marginBottom: '6px' }}
+          >
+            {nextEvent.name} | {nextEvent.subtitle}
+          </p>
 
-        {/* Animated glow effects */}
-        <div className="absolute inset-0 opacity-30">
-          <div className="absolute inset-0" style={{
-            backgroundImage: 'radial-gradient(circle at 20% 50%, rgba(210,10,10,0.4) 0%, transparent 40%), radial-gradient(circle at 80% 50%, rgba(210,10,10,0.4) 0%, transparent 40%)'
-          }} />
+          <h1
+            className="animate-slide-up-delay-1"
+            style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 'clamp(3rem, 9vw, 6.5rem)', lineHeight: 0.9, letterSpacing: '0.02em', textTransform: 'uppercase', color: '#FFFFFF', marginBottom: '12px', textShadow: '0 2px 30px rgba(0,0,0,0.6)' }}
+          >
+            TOPURIA VS GAETHJE
+          </h1>
+
+          <p
+            className="animate-slide-up-delay-1"
+            style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 600, fontSize: 'clamp(0.85rem, 1.8vw, 1.1rem)', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.8)', marginBottom: '8px' }}
+          >
+            History Will Be Made When The Octagon Touches Down At The White House
+          </p>
+
+          <div className="animate-slide-up-delay-2" style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
+            <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 'clamp(1rem, 2.5vw, 1.3rem)', letterSpacing: '0.05em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.9)' }}>
+              {nextEvent.mainEvent.fighter1}
+            </span>
+            <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 'clamp(1.2rem, 3vw, 1.8rem)', color: '#D20A0A', letterSpacing: '0.05em' }}>VS</span>
+            <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 'clamp(1rem, 2.5vw, 1.3rem)', letterSpacing: '0.05em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.9)' }}>
+              {nextEvent.mainEvent.fighter2}
+            </span>
+          </div>
+
+          <p className="animate-slide-up-delay-2" style={{ fontFamily: "'Barlow', sans-serif", fontWeight: 400, fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', marginBottom: '28px', letterSpacing: '0.04em' }}>
+            {nextEvent.date} · {nextEvent.time} · {nextEvent.location}
+          </p>
+
+          <div className="flex flex-wrap gap-4 animate-slide-up-delay-3">
+            <Link href={`/events/${nextEvent.id}`} className="ufc-btn-primary inline-flex items-center gap-2" style={{ textDecoration: 'none' }}>
+              View Fight Card
+              <ChevronRight size={16} />
+            </Link>
+            <a href="https://ufc.ac/4v2K4zW" target="_blank" rel="noopener noreferrer" className="ufc-btn-outline inline-flex items-center gap-2" style={{ textDecoration: 'none' }}>
+              Watch on Paramount+
+              <ArrowRight size={16} />
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── Stats Bar ────────────────────────────────────────────────────────────────
+function StatsBar() {
+  const stats = [
+    { value: '14+', label: 'Analysis Factors' },
+    { value: '66%', label: 'Favorite Win Rate' },
+    { value: 'v1.0.0', label: 'Model Version' },
+    { value: 'Research-Backed', label: 'Data-Driven' },
+  ];
+  return (
+    <div style={{ backgroundColor: '#D20A0A' }}>
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex flex-wrap items-center justify-between py-3 gap-4">
+          {stats.map((stat) => (
+            <div key={stat.label} className="flex items-center gap-3">
+              <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: '1.4rem', color: '#FFFFFF', letterSpacing: '0.02em' }}>{stat.value}</span>
+              <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 500, fontSize: '0.75rem', color: 'rgba(255,255,255,0.75)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{stat.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Event Card ───────────────────────────────────────────────────────────────
+function EventCard({ event, isUpcoming }: { event: (typeof upcomingEvents)[0] | (typeof recentEvents)[0]; isUpcoming: boolean }) {
+  const upEvent = isUpcoming ? (event as (typeof upcomingEvents)[0]) : null;
+
+  return (
+    <Link href={`/events/${event.id}`}>
+      <div className="event-card" style={{ position: 'relative', overflow: 'hidden', cursor: 'pointer' }}>
+        <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${OCTAGON_BG})`, backgroundSize: 'cover', backgroundPosition: 'center', opacity: 0.15 }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(210,10,10,0.08) 0%, transparent 60%)' }} />
+
+        <div style={{ position: 'relative', zIndex: 2, padding: '24px' }}>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              {isUpcoming && upEvent?.type && (
+                <span style={{ backgroundColor: '#D20A0A', color: '#FFFFFF', fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '0.65rem', letterSpacing: '0.15em', textTransform: 'uppercase', padding: '2px 8px' }}>
+                  {upEvent.type}
+                </span>
+              )}
+            </div>
+            <span style={{ fontFamily: "'Barlow', sans-serif", fontWeight: 500, fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>{event.date}</span>
+          </div>
+
+          <h3 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: '1.25rem', letterSpacing: '0.03em', textTransform: 'uppercase', color: '#FFFFFF', marginBottom: '12px', lineHeight: 1.1 }}>
+            {event.name}
+          </h3>
+
+          {isUpcoming && upEvent?.mainEvent && (
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '12px', marginBottom: '16px' }}>
+              <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 500, fontSize: '0.7rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', marginBottom: '6px' }}>Main Event</p>
+              <div className="flex items-center gap-2">
+                <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '0.95rem', textTransform: 'uppercase', color: '#FFFFFF' }}>{upEvent.mainEvent.fighter1}</span>
+                <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: '0.9rem', color: '#D20A0A' }}>VS</span>
+                <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '0.95rem', textTransform: 'uppercase', color: '#FFFFFF' }}>{upEvent.mainEvent.fighter2}</span>
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center justify-between">
+            <span style={{ fontFamily: "'Barlow', sans-serif", fontWeight: 400, fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)' }}>
+              {event.fights ? `${event.fights} fights` : 'Card TBA'}
+            </span>
+            <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '0.8rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#D20A0A', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              View Predictions
+              <ChevronRight size={14} />
+            </span>
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+// ─── Fight Card Section ──────────────────────────────────────────────────────
+function FightCardSection() {
+  const event = upcomingEvents[0];
+  const fights = event.mainCard;
+
+  return (
+    <section style={{ backgroundColor: '#0D0D0D', padding: '64px 0' }}>
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h2 className="ufc-section-title" style={{ fontSize: '1.5rem', color: '#FFFFFF', marginBottom: '4px' }}>Main Card</h2>
+            <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: '0.85rem', color: 'rgba(255,255,255,0.4)', paddingLeft: '1.25rem' }}>
+              {event.name} · {event.date} · {event.time}
+            </p>
+          </div>
+          <a
+            href="https://ufc.ac/4v2K4zW"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '0.75rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#D20A0A', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid #D20A0A', padding: '8px 16px' }}
+          >
+            Watch on Paramount+
+          </a>
         </div>
 
-        <div className="relative max-w-6xl mx-auto px-4 py-16 md:py-24">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 bg-[#d20a0a] rounded-lg flex items-center justify-center shadow-lg shadow-red-900/30">
-              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-            </div>
-            <h1 className="text-3xl font-bold text-white">UFC Predictions</h1>
-          </div>
-          <p className="text-xl text-gray-300 max-w-2xl mb-8">
-            AI-powered fight predictions based on comprehensive fighter analysis,
-            historical performance, and advanced statistics.
-          </p>
-          <div className="flex flex-wrap gap-4 mb-8">
-            <div className="bg-[#1a1a1a]/80 backdrop-blur border border-[#3a3a3a] rounded-lg px-4 py-3">
-              <p className="text-gray-400 text-sm">Analysis Factors</p>
-              <p className="text-white text-2xl font-bold">14+</p>
-            </div>
-            <div className="bg-[#1a1a1a]/80 backdrop-blur border border-[#3a3a3a] rounded-lg px-4 py-3">
-              <p className="text-gray-400 text-sm">Including</p>
-              <p className="text-white text-lg font-semibold">Style, Streak, Altitude</p>
-            </div>
-            <div className="bg-[#1a1a1a]/80 backdrop-blur border border-[#3a3a3a] rounded-lg px-4 py-3">
-              <p className="text-gray-400 text-sm">Research-Backed</p>
-              <p className="text-[#c9a227] text-lg font-semibold">Data-Driven</p>
-            </div>
-          </div>
+        <div className="flex flex-col gap-2">
+          {fights.map((fight, i) => (
+            <div
+              key={i}
+              style={{
+                backgroundColor: i === 0 ? 'rgba(210,10,10,0.08)' : 'rgba(255,255,255,0.03)',
+                border: i === 0 ? '1px solid rgba(210,10,10,0.3)' : '1px solid rgba(255,255,255,0.06)',
+                padding: '16px 24px',
+                display: 'grid',
+                gridTemplateColumns: '1fr auto 1fr',
+                alignItems: 'center',
+                gap: '16px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                {fight.rank1 && (
+                  <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '0.7rem', color: fight.rank1 === 'C' || fight.rank1 === 'IC' ? '#C9A84C' : 'rgba(255,255,255,0.4)', letterSpacing: '0.05em', minWidth: '24px' }}>
+                    {fight.rank1}
+                  </span>
+                )}
+                <div>
+                  <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: '1rem', textTransform: 'uppercase', color: '#FFFFFF', letterSpacing: '0.03em' }}>{fight.fighter1}</p>
+                  {fight.odds1 !== null && (
+                    <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: '0.75rem', color: fight.odds1 < 0 ? '#4ade80' : 'rgba(255,255,255,0.5)' }}>
+                      {fight.odds1 > 0 ? `+${fight.odds1}` : fight.odds1}
+                    </p>
+                  )}
+                </div>
+              </div>
 
-          {/* Next Event Countdown */}
-          {nextEvent && (
-            <div className="bg-[#1a1a1a]/80 backdrop-blur border border-[#3a3a3a] rounded-lg p-6 max-w-lg">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-[#c9a227] text-sm font-semibold">NEXT EVENT</span>
-                {nextEvent.isPPV && (
-                  <span className="bg-[#c9a227] text-black text-[10px] font-bold px-1.5 py-0.5 rounded">
-                    PPV
+              <div style={{ textAlign: 'center' }}>
+                <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: '0.9rem', color: '#D20A0A', letterSpacing: '0.1em' }}>VS</p>
+                <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: '0.6rem', color: 'rgba(255,255,255,0.3)', letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: '2px', maxWidth: '120px' }}>{fight.division}</p>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'flex-end' }}>
+                <div style={{ textAlign: 'right' }}>
+                  <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: '1rem', textTransform: 'uppercase', color: '#FFFFFF', letterSpacing: '0.03em' }}>{fight.fighter2}</p>
+                  {fight.odds2 !== null && (
+                    <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: '0.75rem', color: fight.odds2 > 0 ? 'rgba(255,255,255,0.5)' : '#4ade80' }}>
+                      {fight.odds2 > 0 ? `+${fight.odds2}` : fight.odds2}
+                    </p>
+                  )}
+                </div>
+                {fight.rank2 && (
+                  <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '0.7rem', color: fight.rank2 === 'C' || fight.rank2 === 'IC' ? '#C9A84C' : 'rgba(255,255,255,0.4)', letterSpacing: '0.05em', minWidth: '24px', textAlign: 'right' }}>
+                    {fight.rank2}
                   </span>
                 )}
               </div>
-              <h3 className="text-white text-xl font-bold mb-3">{nextEvent.name}</h3>
-              <CountdownTimer targetDate={new Date(nextEvent.date)} compact />
-              <Link
-                href={`/events/${nextEvent.id}`}
-                className="mt-4 inline-flex items-center gap-2 text-[#d20a0a] hover:text-red-400 transition-colors font-semibold"
-              >
-                View Predictions
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </Link>
             </div>
-          )}
+          ))}
         </div>
-      </header>
+      </div>
+    </section>
+  );
+}
 
-      <main className="max-w-6xl mx-auto px-4 py-8">
-        {/* Upcoming Events */}
-        <section className="mb-12">
-          <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
-            <span className="w-1 h-8 bg-[#d20a0a] rounded-full"></span>
-            Upcoming Events
-          </h2>
+// ─── Events Section ──────────────────────────────────────────────────────────
+function EventsSection() {
+  return (
+    <section style={{ backgroundColor: '#111111', padding: '64px 0' }}>
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+          <div>
+            <h2 className="ufc-section-title" style={{ fontSize: '1.5rem', marginBottom: '24px', color: '#FFFFFF' }}>Upcoming Events</h2>
+            <div className="flex flex-col gap-4">
+              {upcomingEvents.map((ev) => (
+                <EventCard key={ev.id} event={ev} isUpcoming={true} />
+              ))}
+            </div>
+          </div>
 
-          {upcomingEvents.length > 0 ? (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {upcomingEvents.map((event: typeof upcomingEvents[0], index: number) => {
-                const mainEvent = event.fights[0];
+          <div>
+            <h2 className="ufc-section-title" style={{ fontSize: '1.5rem', marginBottom: '24px', color: '#FFFFFF' }}>Recent Events</h2>
+            <div className="flex flex-col gap-4">
+              {recentEvents.map((ev) => (
+                <EventCard key={ev.id} event={ev} isUpcoming={false} />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── Tools Section ───────────────────────────────────────────────────────────
+function ToolsSection() {
+  const tools = [
+    { href: '/parlay', title: 'Parlay Builder', desc: 'Build parlays with correlation analysis and edge calculation', icon: BarChart3, color: '#D20A0A' },
+    { href: '/accuracy', title: 'Model Accuracy', desc: 'Calibration charts, Brier score, and performance tracking', icon: TrendingUp, color: '#C9A84C' },
+  ];
+
+  return (
+    <section style={{ backgroundColor: '#0D0D0D', padding: '64px 0' }}>
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 className="ufc-section-title" style={{ fontSize: '1.5rem', marginBottom: '32px', color: '#FFFFFF' }}>Tools</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {tools.map((tool) => {
+            const Icon = tool.icon;
+            return (
+              <Link key={tool.title} href={tool.href}>
+                <div className="event-card" style={{ padding: '32px', display: 'flex', alignItems: 'flex-start', gap: '20px', cursor: 'pointer' }}>
+                  <div style={{ width: '48px', height: '48px', backgroundColor: tool.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Icon size={22} color="#FFFFFF" />
+                  </div>
+                  <div>
+                    <h3 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: '1.2rem', letterSpacing: '0.03em', textTransform: 'uppercase', color: '#FFFFFF', marginBottom: '6px' }}>{tool.title}</h3>
+                    <p style={{ fontFamily: "'Barlow', sans-serif", fontWeight: 400, fontSize: '0.9rem', color: 'rgba(255,255,255,0.55)', lineHeight: 1.5 }}>{tool.desc}</p>
+                  </div>
+                  <ExternalLink size={16} style={{ marginLeft: 'auto', color: 'rgba(255,255,255,0.3)', flexShrink: 0 }} />
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── Model Factors Section ───────────────────────────────────────────────────
+function ModelSection() {
+  const [animated, setAnimated] = useState(false);
+  const sectionRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setAnimated(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.2 }
+    );
+    if (sectionRef.current) observer.observe(sectionRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <section ref={sectionRef} style={{ position: 'relative', backgroundColor: '#111111', padding: '80px 0', overflow: 'hidden' }}>
+      <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${STATS_BG})`, backgroundSize: 'cover', backgroundPosition: 'center', opacity: 0.08 }} />
+
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8" style={{ position: 'relative', zIndex: 2 }}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+          <div>
+            <h2 className="ufc-section-title" style={{ fontSize: '1.5rem', marginBottom: '8px', color: '#FFFFFF' }}>Prediction Model</h2>
+            <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: '0.9rem', color: 'rgba(255,255,255,0.5)', marginBottom: '32px', paddingLeft: '1.25rem' }}>14+ weighted factors analyzed per fight</p>
+
+            <div className="flex flex-col gap-5">
+              {modelFactors.map((factor, i) => {
+                const Icon = factor.icon;
                 return (
-                  <Link
-                    key={event.id}
-                    href={`/events/${event.id}`}
-                    className="fight-card event-card p-4"
-                    style={{ animationDelay: `${index * 0.1}s` }}
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      {event.isPPV && (
-                        <span className="bg-[#c9a227] text-black text-xs font-bold px-2 py-0.5 rounded">
-                          PPV
-                        </span>
-                      )}
-                      <span className="text-gray-400 text-sm">
-                        {format(new Date(event.date), 'MMM d, yyyy')}
-                      </span>
-                    </div>
-                    <h3 className="text-lg font-bold text-white mb-2">
-                      {event.name}
-                    </h3>
-                    {mainEvent && (
-                      <div className="bg-[#1a1a1a] rounded p-2 mb-2">
-                        <p className="text-sm text-gray-400 mb-1">Main Event</p>
-                        <p className="text-white font-semibold">
-                          {mainEvent.fighterA.isChampion && (
-                            <span className="text-[#c9a227]">(C) </span>
-                          )}
-                          {mainEvent.fighterA.name}
-                          <span className="text-[#d20a0a] mx-2">vs</span>
-                          {mainEvent.fighterB.isChampion && (
-                            <span className="text-[#c9a227]">(C) </span>
-                          )}
-                          {mainEvent.fighterB.name}
-                        </p>
+                  <div key={factor.label}>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Icon size={14} style={{ color: '#D20A0A' }} />
+                        <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '0.85rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#FFFFFF' }}>{factor.label}</span>
                       </div>
-                    )}
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-400">
-                        {event._count.fights} fights
-                      </span>
-                      <span className="text-[#d20a0a] font-semibold flex items-center gap-1">
-                        View Predictions
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </span>
+                      <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: '1rem', color: '#D20A0A' }}>{factor.pct}%</span>
                     </div>
-                  </Link>
+                    <div style={{ height: '4px', backgroundColor: 'rgba(255,255,255,0.08)', position: 'relative', overflow: 'hidden' }}>
+                      <div className="prob-bar-fill" style={{ position: 'absolute', top: 0, left: 0, height: '100%', backgroundColor: '#D20A0A', width: animated ? `${(factor.pct / 15) * 100}%` : '0%', transitionDelay: `${i * 60}ms` }} />
+                    </div>
+                    <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: '0.75rem', color: 'rgba(255,255,255,0.35)', marginTop: '4px' }}>{factor.desc}</p>
+                  </div>
                 );
               })}
             </div>
-          ) : (
-            <div className="bg-[#1a1a1a] border border-[#3a3a3a] rounded-lg p-8 text-center">
-              <svg className="w-16 h-16 text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              <p className="text-gray-400 text-lg mb-4">
-                No upcoming events found.
-              </p>
-              <p className="text-gray-500 mb-4">
-                Run the seeding script to add sample events.
-              </p>
-              <code className="block bg-[#0d0d0d] text-green-400 px-4 py-2 rounded font-mono text-sm">
-                npm run seed
-              </code>
-            </div>
-          )}
-        </section>
+          </div>
 
-        {/* Recent Events */}
-        {recentEvents.length > 0 && (
-          <section className="mb-12">
-            <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
-              <span className="w-1 h-8 bg-gray-500 rounded-full"></span>
-              Recent Events
-            </h2>
-            <div className="grid gap-4 md:grid-cols-3">
-              {recentEvents.map((event: typeof recentEvents[0]) => (
-                <Link
-                  key={event.id}
-                  href={`/events/${event.id}`}
-                  className="bg-[#1a1a1a] border border-[#3a3a3a] rounded-lg p-4 hover:border-gray-500 transition-all hover:bg-[#1f1f1f]"
-                >
-                  <span className="text-gray-500 text-sm">
-                    {format(new Date(event.date), 'MMM d, yyyy')}
-                  </span>
-                  <h3 className="text-white font-semibold mt-1">
-                    {event.name}
-                  </h3>
-                  <p className="text-gray-500 text-sm mt-2">
-                    {event._count.fights} fights
-                  </p>
-                </Link>
+          <div>
+            <h2 className="ufc-section-title" style={{ fontSize: '1.5rem', marginBottom: '8px', color: '#FFFFFF' }}>Key Research Findings</h2>
+            <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: '0.9rem', color: 'rgba(255,255,255,0.5)', marginBottom: '32px', paddingLeft: '1.25rem' }}>Derived from academic studies on MMA fight outcomes</p>
+
+            <div className="flex flex-col gap-4 mb-10">
+              {keyFindings.map((finding, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '16px', backgroundColor: 'rgba(255,255,255,0.03)', borderLeft: '3px solid #D20A0A' }}>
+                  <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: '1.1rem', color: '#D20A0A', lineHeight: 1, marginTop: '2px' }}>{String(i + 1).padStart(2, '0')}</span>
+                  <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: '0.9rem', color: 'rgba(255,255,255,0.8)', lineHeight: 1.5 }}>{finding}</p>
+                </div>
               ))}
             </div>
-          </section>
-        )}
 
-        {/* Quick Links */}
-        <section className="mb-12">
-          <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
-            <span className="w-1 h-8 bg-purple-500 rounded-full"></span>
-            Tools
-          </h2>
-          <div className="grid gap-4 md:grid-cols-2">
-            <Link
-              href="/parlay"
-              className="bg-gradient-to-br from-[#1a1a1a] to-[#2a1a2a] border border-purple-900/50 rounded-xl p-6 hover:border-purple-500/50 transition-all group"
-            >
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-purple-900/30 rounded-lg flex items-center justify-center group-hover:bg-purple-900/50 transition-colors">
-                  <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="text-white font-bold text-lg">Parlay Builder</h3>
-                  <p className="text-gray-400 text-sm">Build parlays with correlation analysis and edge calculation</p>
-                </div>
-              </div>
-            </Link>
-            <Link
-              href="/accuracy"
-              className="bg-gradient-to-br from-[#1a1a1a] to-[#1a2a1a] border border-green-900/50 rounded-xl p-6 hover:border-green-500/50 transition-all group"
-            >
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-green-900/30 rounded-lg flex items-center justify-center group-hover:bg-green-900/50 transition-colors">
-                  <svg className="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="text-white font-bold text-lg">Model Accuracy</h3>
-                  <p className="text-gray-400 text-sm">Calibration charts, Brier score, and performance tracking</p>
-                </div>
-              </div>
-            </Link>
-          </div>
-        </section>
-
-        {/* Accuracy Tracker */}
-        <section className="mb-12">
-          <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
-            <span className="w-1 h-8 bg-green-500 rounded-full"></span>
-            Model Performance
-          </h2>
-          <AccuracyTracker />
-        </section>
-
-        {/* How It Works */}
-        <section className="mb-12">
-          <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
-            <span className="w-1 h-8 bg-[#c9a227] rounded-full"></span>
-            How It Works
-          </h2>
-          <p className="text-gray-400 mb-6 max-w-2xl">
-            Our prediction model analyzes 14+ factors to calculate win probabilities.
-            Each factor is weighted based on research and historical accuracy.
-          </p>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {factors.map((factor, index) => (
-              <div
-                key={index}
-                className="bg-[#1a1a1a] border border-[#3a3a3a] rounded-lg p-4 hover:border-[#c9a227]/50 transition-colors group"
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <div className="text-gray-400 group-hover:text-[#c9a227] transition-colors">
-                    {factor.icon}
-                  </div>
-                  <span className="text-[#c9a227] text-sm font-bold bg-[#c9a227]/10 px-2 py-0.5 rounded">
-                    {factor.weight}
-                  </span>
-                </div>
-                <h3 className="text-white font-semibold mb-1">{factor.title}</h3>
-                <p className="text-gray-400 text-sm">{factor.description}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Model Info */}
-        <section className="mb-12">
-          <div className="bg-gradient-to-r from-[#1a1a1a] to-[#2a2a2a] border border-[#3a3a3a] rounded-lg p-6">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 bg-[#c9a227]/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                <svg className="w-6 h-6 text-[#c9a227]" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <div>
-                <h3 className="text-[#c9a227] font-semibold text-lg mb-2">About the Model</h3>
-                <p className="text-gray-400 text-sm mb-3">
-                  Version 1.0.0 uses research-backed weights derived from academic studies
-                  on MMA fight outcomes. Key findings include:
-                </p>
-                <ul className="text-gray-400 text-sm space-y-1">
-                  <li className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 bg-[#c9a227] rounded-full"></span>
-                    UFC favorites win ~66% of the time (not 75% as commonly cited)
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 bg-[#c9a227] rounded-full"></span>
-                    Southpaws have ~3% advantage vs orthodox fighters
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 bg-[#c9a227] rounded-full"></span>
-                    Grapplers beat strikers ~60% of the time
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 bg-[#c9a227] rounded-full"></span>
-                    High altitude (&gt;1500m) significantly impacts cardio
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Disclaimer */}
-        <section className="bg-[#1a1a1a] border border-[#3a3a3a] rounded-lg p-6">
-          <div className="flex items-start gap-3">
-            <svg className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-            </svg>
-            <div>
-              <h3 className="text-yellow-500 font-semibold mb-2">Disclaimer</h3>
-              <p className="text-gray-400 text-sm">
-                These predictions are generated using AI and historical data analysis.
-                They are for informational purposes only and should not be considered
-                financial advice. Past performance does not guarantee future results.
-                Please gamble responsibly.
+            <div style={{ backgroundColor: 'rgba(210,10,10,0.08)', border: '1px solid rgba(210,10,10,0.25)', padding: '24px' }}>
+              <h4 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: '1rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#FFFFFF', marginBottom: '8px' }}>About the Model</h4>
+              <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: '0.85rem', color: 'rgba(255,255,255,0.55)', lineHeight: 1.6, marginBottom: '12px' }}>
+                Version 1.0.0 uses research-backed weights derived from academic studies on MMA fight outcomes. Built with Next.js, Prisma, and AI.
+              </p>
+              <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)', lineHeight: 1.5 }}>
+                Predictions are for informational purposes only. Past performance does not guarantee future results. Please gamble responsibly.
               </p>
             </div>
           </div>
-        </section>
-      </main>
-
-      {/* Footer */}
-      <footer className="border-t border-[#3a3a3a] py-6 mt-8">
-        <div className="max-w-6xl mx-auto px-4 text-center text-gray-500 text-sm">
-          <p>UFC Predictions - Model Version 1.0.0</p>
-          <p className="mt-1">Built with Next.js, Prisma, and AI</p>
         </div>
-      </footer>
+      </div>
+    </section>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+export default function Home() {
+  return (
+    <div style={{ backgroundColor: '#0D0D0D', display: 'flex', flexDirection: 'column' }}>
+      <HeroSection />
+      <StatsBar />
+      <FightCardSection />
+      <EventsSection />
+      <ToolsSection />
+      <ModelSection />
     </div>
   );
 }
