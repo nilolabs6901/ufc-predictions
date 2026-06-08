@@ -26,7 +26,7 @@ async function getEvent(id: string) {
             include: { stats: true },
           },
           predictions: {
-            where: { modelVersion: '1.0.0' },
+            orderBy: { createdAt: 'desc' },
             take: 1,
           },
         },

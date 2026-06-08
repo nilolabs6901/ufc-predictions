@@ -311,9 +311,33 @@ function EventCard({ event, isUpcoming }: { event: (typeof upcomingEvents)[0] | 
 }
 
 // ─── Fight Card Section ──────────────────────────────────────────────────────
+function confLabel(c: number) {
+  return c >= 0.7 ? 'High' : c >= 0.55 ? 'Medium' : 'Low';
+}
+
 function FightCardSection() {
   const event = upcomingEvents[0];
   const fights = event.mainCard;
+  const [details, setDetails] = useState<Record<string, any>>({});
+  const [loaded, setLoaded] = useState(false);
+  const [openIdx, setOpenIdx] = useState<number | null>(0); // main event expanded by default
+
+  useEffect(() => {
+    fetch(`/api/events/${event.id}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        const map: Record<string, any> = {};
+        for (const f of d?.fights?.mainCard ?? []) {
+          map[[f.fighterA.name, f.fighterB.name].sort().join('|')] = f;
+        }
+        setDetails(map);
+        setLoaded(true);
+      })
+      .catch(() => setLoaded(true));
+  }, [event.id]);
+
+  const detailFor = (f: (typeof fights)[0]) =>
+    details[[f.fighter1, f.fighter2].sort().join('|')];
 
   return (
     <section style={{ backgroundColor: '#0D0D0D', padding: '64px 0' }}>
@@ -336,57 +360,144 @@ function FightCardSection() {
         </div>
 
         <div className="flex flex-col gap-2">
-          {fights.map((fight, i) => (
-            <div
-              key={i}
-              style={{
-                backgroundColor: i === 0 ? 'rgba(210,10,10,0.08)' : 'rgba(255,255,255,0.03)',
-                border: i === 0 ? '1px solid rgba(210,10,10,0.3)' : '1px solid rgba(255,255,255,0.06)',
-                padding: '16px 24px',
-                display: 'grid',
-                gridTemplateColumns: '1fr auto 1fr',
-                alignItems: 'center',
-                gap: '16px',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                {fight.rank1 && (
-                  <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '0.7rem', color: fight.rank1 === 'C' || fight.rank1 === 'IC' ? '#C9A84C' : 'rgba(255,255,255,0.4)', letterSpacing: '0.05em', minWidth: '24px' }}>
-                    {fight.rank1}
-                  </span>
-                )}
-                <div>
-                  <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: '1rem', textTransform: 'uppercase', color: '#FFFFFF', letterSpacing: '0.03em' }}>{fight.fighter1}</p>
-                  {fight.odds1 !== null && (
-                    <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: '0.75rem', color: fight.odds1 < 0 ? '#4ade80' : 'rgba(255,255,255,0.5)' }}>
-                      {fight.odds1 > 0 ? `+${fight.odds1}` : fight.odds1}
-                    </p>
-                  )}
-                </div>
-              </div>
+          {fights.map((fight, i) => {
+            const d = detailFor(fight);
+            const pred = d?.prediction;
+            const isOpen = openIdx === i;
+            const imgA: string | null = d?.fighterA?.imageUrl ?? null;
+            const imgB: string | null = d?.fighterB?.imageUrl ?? null;
 
-              <div style={{ textAlign: 'center' }}>
-                <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: '0.9rem', color: '#D20A0A', letterSpacing: '0.1em' }}>VS</p>
-                <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: '0.6rem', color: 'rgba(255,255,255,0.3)', letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: '2px', maxWidth: '120px' }}>{fight.division}</p>
-              </div>
+            let aWin = false, pickName = '', pickProb = 0, aProb = 50, bProb = 50;
+            if (d && pred) {
+              aWin = pred.predictedWinnerId === d.fighterA.id;
+              aProb = Math.round(pred.fighterAWinProb * 100);
+              bProb = 100 - aProb;
+              pickName = aWin ? d.fighterA.name : d.fighterB.name;
+              pickProb = aWin ? aProb : bProb;
+            }
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'flex-end' }}>
-                <div style={{ textAlign: 'right' }}>
-                  <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: '1rem', textTransform: 'uppercase', color: '#FFFFFF', letterSpacing: '0.03em' }}>{fight.fighter2}</p>
-                  {fight.odds2 !== null && (
-                    <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: '0.75rem', color: fight.odds2 > 0 ? 'rgba(255,255,255,0.5)' : '#4ade80' }}>
-                      {fight.odds2 > 0 ? `+${fight.odds2}` : fight.odds2}
-                    </p>
-                  )}
-                </div>
-                {fight.rank2 && (
-                  <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '0.7rem', color: fight.rank2 === 'C' || fight.rank2 === 'IC' ? '#C9A84C' : 'rgba(255,255,255,0.4)', letterSpacing: '0.05em', minWidth: '24px', textAlign: 'right' }}>
-                    {fight.rank2}
-                  </span>
+            const avatar = (src: string | null) => (
+              <span style={{ width: '40px', height: '40px', flexShrink: 0, borderRadius: '50%', overflow: 'hidden', backgroundColor: '#2a2a2a', display: 'inline-block', border: '1px solid rgba(255,255,255,0.1)' }}>
+                {src && (
+                  <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top' }} />
+                )}
+              </span>
+            );
+
+            return (
+              <div
+                key={i}
+                style={{
+                  backgroundColor: i === 0 ? 'rgba(210,10,10,0.08)' : 'rgba(255,255,255,0.03)',
+                  border: isOpen
+                    ? '1px solid rgba(210,10,10,0.55)'
+                    : i === 0
+                    ? '1px solid rgba(210,10,10,0.3)'
+                    : '1px solid rgba(255,255,255,0.06)',
+                  overflow: 'hidden',
+                  transition: 'border-color 150ms ease-out',
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setOpenIdx(isOpen ? null : i)}
+                  aria-expanded={isOpen}
+                  style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '16px 24px', display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: '16px', textAlign: 'left' }}
+                >
+                  {/* Fighter 1 */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    {fight.rank1 && (
+                      <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '0.7rem', color: fight.rank1 === 'C' || fight.rank1 === 'IC' ? '#C9A84C' : 'rgba(255,255,255,0.4)', letterSpacing: '0.05em', minWidth: '20px' }}>
+                        {fight.rank1}
+                      </span>
+                    )}
+                    {avatar(imgA)}
+                    <div>
+                      <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: '1rem', textTransform: 'uppercase', color: aWin && pred ? '#4ade80' : '#FFFFFF', letterSpacing: '0.03em' }}>{fight.fighter1}</p>
+                      {fight.odds1 !== null && (
+                        <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: '0.75rem', color: fight.odds1 < 0 ? '#4ade80' : 'rgba(255,255,255,0.5)' }}>
+                          {fight.odds1 > 0 ? `+${fight.odds1}` : fight.odds1}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Center */}
+                  <div style={{ textAlign: 'center' }}>
+                    <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: '0.9rem', color: '#D20A0A', letterSpacing: '0.1em' }}>VS</p>
+                    <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: '0.6rem', color: 'rgba(255,255,255,0.3)', letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: '2px', maxWidth: '120px' }}>{fight.division}</p>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', marginTop: '4px', fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '0.55rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#D20A0A' }}>
+                      {isOpen ? 'Hide' : 'Prediction'}
+                      <ChevronRight size={11} style={{ transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 150ms' }} />
+                    </span>
+                  </div>
+
+                  {/* Fighter 2 */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'flex-end' }}>
+                    <div style={{ textAlign: 'right' }}>
+                      <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: '1rem', textTransform: 'uppercase', color: !aWin && pred ? '#4ade80' : '#FFFFFF', letterSpacing: '0.03em' }}>{fight.fighter2}</p>
+                      {fight.odds2 !== null && (
+                        <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: '0.75rem', color: fight.odds2 > 0 ? 'rgba(255,255,255,0.5)' : '#4ade80' }}>
+                          {fight.odds2 > 0 ? `+${fight.odds2}` : fight.odds2}
+                        </p>
+                      )}
+                    </div>
+                    {avatar(imgB)}
+                    {fight.rank2 && (
+                      <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '0.7rem', color: fight.rank2 === 'C' || fight.rank2 === 'IC' ? '#C9A84C' : 'rgba(255,255,255,0.4)', letterSpacing: '0.05em', minWidth: '20px', textAlign: 'right' }}>
+                        {fight.rank2}
+                      </span>
+                    )}
+                  </div>
+                </button>
+
+                {/* Expandable prediction panel */}
+                {isOpen && (
+                  <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', padding: '18px 24px', backgroundColor: 'rgba(0,0,0,0.25)' }}>
+                    {!loaded ? (
+                      <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: '0.85rem', color: 'rgba(255,255,255,0.45)' }}>Loading prediction…</p>
+                    ) : !pred ? (
+                      <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: '0.85rem', color: 'rgba(255,255,255,0.45)' }}>AI prediction unavailable for this bout.</p>
+                    ) : (
+                      <>
+                        {/* Win probability bar */}
+                        <div className="flex items-center justify-between" style={{ marginBottom: '6px', fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                          <span style={{ color: aWin ? '#4ade80' : 'rgba(255,255,255,0.7)' }}>{d.fighterA.name} {aProb}%</span>
+                          <span style={{ color: !aWin ? '#4ade80' : 'rgba(255,255,255,0.7)' }}>{bProb}% {d.fighterB.name}</span>
+                        </div>
+                        <div style={{ display: 'flex', height: '8px', width: '100%', overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.08)' }}>
+                          <div style={{ width: `${aProb}%`, backgroundColor: aWin ? '#22c55e' : '#D20A0A' }} />
+                          <div style={{ width: `${bProb}%`, backgroundColor: !aWin ? '#22c55e' : 'rgba(255,255,255,0.25)' }} />
+                        </div>
+
+                        {/* Pick + confidence */}
+                        <div className="flex items-center flex-wrap gap-2" style={{ marginTop: '14px' }}>
+                          <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '0.7rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)' }}>AI Model Pick</span>
+                          <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: '0.95rem', textTransform: 'uppercase', color: '#FFFFFF', letterSpacing: '0.03em' }}>{pickName} · {pickProb}%</span>
+                          <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '0.65rem', letterSpacing: '0.08em', textTransform: 'uppercase', padding: '2px 8px', color: pred.confidence >= 0.7 ? '#4ade80' : pred.confidence >= 0.55 ? '#facc15' : 'rgba(255,255,255,0.5)', border: '1px solid currentColor' }}>{confLabel(pred.confidence)} confidence</span>
+                        </div>
+
+                        {/* Insights */}
+                        {pred.insights?.length > 0 && (
+                          <div className="flex flex-wrap gap-2" style={{ marginTop: '12px' }}>
+                            {pred.insights.slice(0, 4).map((ins: string, k: number) => (
+                              <span key={k} style={{ fontFamily: "'Barlow', sans-serif", fontSize: '0.75rem', color: 'rgba(255,255,255,0.75)', backgroundColor: 'rgba(255,255,255,0.05)', borderLeft: '2px solid #D20A0A', padding: '5px 10px' }}>{ins}</span>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Full breakdown link */}
+                        <Link href={`/events/${event.id}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '14px', fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '0.72rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#D20A0A', textDecoration: 'none' }}>
+                          View full breakdown
+                          <ChevronRight size={13} />
+                        </Link>
+                      </>
+                    )}
+                  </div>
                 )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>
