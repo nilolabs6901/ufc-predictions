@@ -204,6 +204,13 @@ function HeroSection() {
             History Will Be Made When The Octagon Touches Down At The White House
           </p>
 
+          <p
+            className="animate-slide-up-delay-1"
+            style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 'clamp(0.8rem, 1.6vw, 1rem)', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#C9A227', marginBottom: '12px', fontStyle: 'italic' }}
+          >
+            Totally Gonna Chama On Your Mama
+          </p>
+
           <div className="animate-slide-up-delay-2" style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
             <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 'clamp(1rem, 2.5vw, 1.3rem)', letterSpacing: '0.05em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.9)' }}>
               {nextEvent.mainEvent.fighter1}
