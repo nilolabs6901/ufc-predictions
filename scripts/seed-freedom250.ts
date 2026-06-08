@@ -410,7 +410,7 @@ async function seed() {
       ufcStatsId: EVENT_ID,
       name: 'UFC Freedom 250: Topuria vs Gaethje',
       shortName: 'UFC Freedom 250',
-      date: new Date('2026-06-15T00:00:00Z'), // 8pm EDT Jun 14 = Jun 15 00:00 UTC
+      date: new Date('2026-06-14T20:00:00Z'), // stored as wall-clock Jun 14 so it renders "June 14" on UTC (Railway) servers
       venue: 'The White House',
       city: 'Washington',
       state: 'D.C.',
