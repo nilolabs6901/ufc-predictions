@@ -165,7 +165,7 @@ function HeroSection() {
         style={{ position: 'relative', zIndex: 10, paddingTop: '80px', paddingBottom: '80px', minHeight: '560px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}
       >
         <div style={{ maxWidth: '680px' }}>
-          <div className="flex items-center gap-3 mb-4 animate-slide-up">
+          <div className="flex flex-wrap items-center gap-3 mb-4 animate-slide-up">
             <span
               style={{
                 backgroundColor: 'rgba(255,255,255,0.15)',
@@ -180,6 +180,21 @@ function HeroSection() {
               }}
             >
               {nextEvent.type} · Next Event
+            </span>
+            <span
+              style={{
+                backgroundColor: 'rgba(201,162,39,0.15)',
+                color: '#C9A227',
+                fontFamily: "'Barlow Condensed', sans-serif",
+                fontWeight: 700,
+                fontSize: '0.7rem',
+                letterSpacing: '0.15em',
+                textTransform: 'uppercase',
+                padding: '3px 10px',
+                border: '1px solid rgba(201,162,39,0.4)',
+              }}
+            >
+              Making Chama Great Again
             </span>
           </div>
 
