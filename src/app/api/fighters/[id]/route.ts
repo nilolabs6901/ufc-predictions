@@ -1,6 +1,7 @@
 // GET /api/fighters/[id] - Get full fighter profile
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/database/prisma';
+import { fighterImage } from '@/lib/fighter-images';
 
 export async function GET(
   request: NextRequest,
@@ -34,7 +35,7 @@ export async function GET(
         id: fighter.id,
         name: fighter.name,
         nickname: fighter.nickname,
-        imageUrl: fighter.imageUrl,
+        imageUrl: fighterImage(fighter.name, fighter.imageUrl),
         nationality: fighter.nationality,
         weightClass: fighter.weightClass,
         hometown: fighter.hometown,

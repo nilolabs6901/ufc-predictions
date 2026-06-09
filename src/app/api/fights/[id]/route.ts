@@ -1,6 +1,7 @@
 // GET /api/fights/[id] - Get detailed fight info with fighter stats
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/database/prisma';
+import { fighterImage } from '@/lib/fighter-images';
 
 export async function GET(
   request: NextRequest,
@@ -60,7 +61,7 @@ export async function GET(
           id: fight.fighterA.id,
           name: fight.fighterA.name,
           nickname: fight.fighterA.nickname,
-          imageUrl: fight.fighterA.imageUrl,
+          imageUrl: fighterImage(fight.fighterA.name, fight.fighterA.imageUrl),
           nationality: fight.fighterA.nationality,
           stance: fight.fighterA.stance,
           height: fight.fighterA.height,
@@ -85,7 +86,7 @@ export async function GET(
           id: fight.fighterB.id,
           name: fight.fighterB.name,
           nickname: fight.fighterB.nickname,
-          imageUrl: fight.fighterB.imageUrl,
+          imageUrl: fighterImage(fight.fighterB.name, fight.fighterB.imageUrl),
           nationality: fight.fighterB.nationality,
           stance: fight.fighterB.stance,
           height: fight.fighterB.height,

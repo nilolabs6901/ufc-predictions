@@ -165,7 +165,7 @@ const fighters = [
     ufcStatsId: 'freedom250-hokit',
     name: 'Josh Hokit',
     nickname: null,
-    imageUrl: null,
+    imageUrl: '/fighters/josh-hokit.jpg',
     nationality: 'USA',
     weightClass: 'Heavyweight',
     hometown: 'Clovis, California, USA',
