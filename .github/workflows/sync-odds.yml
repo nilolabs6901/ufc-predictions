@@ -1,0 +1,30 @@
+name: Sync UFC Odds
+
+# Auto-pulls live betting lines from The Odds API into the app and clears stale
+# predictions so the model's market-signal factor stays current. Runs on a
+# schedule and can be triggered manually from the Actions tab.
+#
+# Setup: the app needs ODDS_API_KEY set on Railway (free key from the-odds-api.com).
+# Optional hardening: set CRON_SECRET on Railway AND as a repo secret of the same
+# name so only this workflow can trigger the sync.
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'   # every 6 hours (≈120 calls/mo — well under the 500 free tier)
+  workflow_dispatch: {}      # manual "Run workflow" button
+
+jobs:
+  sync-odds:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger odds sync
+        run: |
+          echo "Triggering odds sync…"
+          code=$(curl -sS -o /tmp/resp.json -w "%{http_code}" \
+            -X POST "https://discerning-gentleness-production-6ec9.up.railway.app/api/sync?type=odds" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "content-type: application/json")
+          echo "HTTP $code"
+          cat /tmp/resp.json
+          echo
+          test "$code" = "200"

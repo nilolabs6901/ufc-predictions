@@ -68,10 +68,11 @@ export async function fetchLiveOdds(): Promise<OddsApiEvent[]> {
 // MATCH ODDS TO FIGHTS IN DATABASE
 // =============================================
 
-export async function syncOddsToDatabase(): Promise<{ updated: number; errors: number }> {
+export async function syncOddsToDatabase(): Promise<{ updated: number; errors: number; predictionsCleared: number }> {
   const oddsEvents = await fetchLiveOdds();
   let updated = 0;
   let errors = 0;
+  const updatedFightIds: string[] = [];
 
   for (const event of oddsEvents) {
     try {
@@ -163,13 +164,26 @@ export async function syncOddsToDatabase(): Promise<{ updated: number; errors: n
 
       console.log(`Updated odds for ${fight.fighterA.name} vs ${fight.fighterB.name}: ${fighterAOdds} / ${fighterBOdds}`);
       updated++;
+      updatedFightIds.push(fight.id);
     } catch (error) {
       console.error(`Error processing odds for ${event.home_team} vs ${event.away_team}:`, error);
       errors++;
     }
   }
 
-  return { updated, errors };
+  // Odds feed the model's market-signal factor, so any fight whose line changed
+  // has a stale cached prediction + analysis. Clear them so they regenerate with
+  // the fresh odds on next view (keeps the model current with the market).
+  let predictionsCleared = 0;
+  if (updatedFightIds.length) {
+    const [p] = await Promise.all([
+      prisma.prediction.deleteMany({ where: { fightId: { in: updatedFightIds } } }),
+      prisma.matchupAnalysis.deleteMany({ where: { fightId: { in: updatedFightIds } } }),
+    ]);
+    predictionsCleared = p.count;
+  }
+
+  return { updated, errors, predictionsCleared };
 }
 
 function calculateConsensusOdds(
