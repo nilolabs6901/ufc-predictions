@@ -6,22 +6,27 @@
  * These weights are derived from analysis of UFC fight outcomes
  * and must sum to 1.0
  */
+// v1.1.0 (2026-06-14): marketSignal raised 0.04 -> 0.25 and made the single
+// dominant factor. Rationale: betting markets are the sharpest available
+// predictor, so for an accuracy-first model they should carry the most weight.
+// The other 14 factors were scaled down proportionally to preserve their
+// relative ordering while the total stays at 1.0.
 export const FACTOR_WEIGHTS = {
-  styleMatchup: 0.12,           // Fighting style advantages (grappler vs striker, etc.)
-  strikingAdvantage: 0.12,      // Offensive and defensive striking differentials
-  grapplingAdvantage: 0.12,     // Takedown and submission differentials
-  durability: 0.10,             // Chin/vulnerability to finishes
-  historicalPerformance: 0.14,  // Streak, recent form, ring rust
-  experienceFactor: 0.12,       // Win rate, total fights, quality of competition
-  stanceMatchup: 0.04,          // Orthodox vs southpaw dynamics
-  styleHistory: 0.06,           // Individual records vs style types
-  altitudeImpact: 0.02,         // High altitude acclimation
-  travelFatigue: 0.02,          // Home country advantage
-  cageSizeImpact: 0.02,         // Small vs standard cage effects
-  weightClassFactor: 0.02,      // Natural weight class considerations
-  championshipRounds: 0.04,     // 5-round experience
-  physicalAttributes: 0.02,     // Reach and height advantages
-  marketSignal: 0.04,           // Betting market implied probability
+  styleMatchup: 0.095,          // Fighting style advantages (grappler vs striker, etc.)
+  strikingAdvantage: 0.095,     // Offensive and defensive striking differentials
+  grapplingAdvantage: 0.095,    // Takedown and submission differentials
+  durability: 0.08,             // Chin/vulnerability to finishes
+  historicalPerformance: 0.11,  // Streak, recent form, ring rust
+  experienceFactor: 0.095,      // Win rate, total fights, quality of competition
+  stanceMatchup: 0.03,          // Orthodox vs southpaw dynamics
+  styleHistory: 0.045,          // Individual records vs style types
+  altitudeImpact: 0.015,        // High altitude acclimation
+  travelFatigue: 0.015,         // Home country advantage
+  cageSizeImpact: 0.015,        // Small vs standard cage effects
+  weightClassFactor: 0.015,     // Natural weight class considerations
+  championshipRounds: 0.03,     // 5-round experience
+  physicalAttributes: 0.015,    // Reach and height advantages
+  marketSignal: 0.25,           // Betting market implied probability (dominant: markets are the sharpest signal)
 } as const;
 
 // Verify weights sum to 1.0
