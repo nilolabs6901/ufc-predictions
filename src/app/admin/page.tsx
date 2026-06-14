@@ -18,11 +18,45 @@ interface SyncStatus {
   } | null;
 }
 
+interface BacktestData {
+  modelVersion: string;
+  fights: number;
+  accuracy: number;
+  favoriteAccuracy: number;
+  edgeVsMarketPts: number;
+  brier: number;
+  logLoss: number;
+  tiers: { label: string; accuracy: number | null; n: number }[];
+  calibration: { rangeLabel: string; predicted: number; actual: number; n: number }[];
+  roiAll: number;
+  roiAllN: number;
+  roiValue: number | null;
+  roiValueN: number;
+}
+
 export default function AdminPage() {
   const [status, setStatus] = useState<SyncStatus | null>(null);
   const [syncing, setSyncing] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [backtest, setBacktest] = useState<BacktestData | null>(null);
+  const [backtestRunning, setBacktestRunning] = useState(false);
+  const [backtestError, setBacktestError] = useState<string | null>(null);
+
+  async function runBacktest() {
+    setBacktestRunning(true);
+    setBacktestError(null);
+    try {
+      const res = await fetch('/api/admin/backtest');
+      const data = await res.json();
+      if (res.ok) setBacktest(data.result);
+      else setBacktestError(data.error || 'Backtest failed');
+    } catch (e) {
+      setBacktestError(`Failed to run backtest: ${e}`);
+    } finally {
+      setBacktestRunning(false);
+    }
+  }
 
   useEffect(() => {
     fetchStatus();
@@ -219,6 +253,77 @@ export default function AdminPage() {
           <p className="text-sm text-gray-500">
             Note: Full sync scrapes all UFC fighters and may take 30-60 minutes. It runs in the background.
           </p>
+        </div>
+
+        {/* Model Backtest */}
+        <div className="mt-12 border-t border-[#3a3a3a] pt-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-white">Model Backtest</h2>
+            <button
+              onClick={runBacktest}
+              disabled={backtestRunning}
+              className="px-4 py-2 rounded-lg bg-[#d20a0a] hover:bg-[#b00909] text-white font-bold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {backtestRunning ? 'Running…' : 'Run Backtest'}
+            </button>
+          </div>
+          <p className="text-sm text-gray-500 mb-4">
+            Runs the current prediction model over ~3,400 historical fights (real stats + closing odds + results) to measure accuracy, calibration, and ROI. Re-run after any model change to prove it helped.
+          </p>
+
+          {backtestError && (
+            <div className="p-4 rounded-lg mb-4 bg-red-500/20 border border-red-500/50 text-red-200">{backtestError}</div>
+          )}
+
+          {backtest && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <StatusCard icon={<span className="text-base">🎯</span>} label="Model accuracy" value={`${(backtest.accuracy * 100).toFixed(1)}%`} />
+                <StatusCard icon={<span className="text-base">💰</span>} label="Favorite baseline" value={`${(backtest.favoriteAccuracy * 100).toFixed(1)}%`} />
+                <StatusCard icon={<span className="text-base">📈</span>} label="Edge vs market" value={`${backtest.edgeVsMarketPts >= 0 ? '+' : ''}${backtest.edgeVsMarketPts.toFixed(1)} pts`} />
+                <StatusCard icon={<span className="text-base">🥊</span>} label="Fights tested" value={backtest.fights} />
+              </div>
+
+              <div className="bg-[#1a1a1a] rounded-lg p-4 border border-[#3a3a3a] grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div><span className="text-gray-500">Brier:</span> <span className="text-white">{backtest.brier.toFixed(3)}</span></div>
+                <div><span className="text-gray-500">LogLoss:</span> <span className="text-white">{backtest.logLoss.toFixed(3)}</span></div>
+                <div><span className="text-gray-500">ROI (all picks):</span> <span className={backtest.roiAll >= 0 ? 'text-green-400' : 'text-red-400'}>{(backtest.roiAll * 100).toFixed(1)}%</span></div>
+                <div><span className="text-gray-500">ROI (value):</span> <span className={(backtest.roiValue ?? 0) >= 0 ? 'text-green-400' : 'text-red-400'}>{backtest.roiValue == null ? '—' : `${(backtest.roiValue * 100).toFixed(1)}%`}</span></div>
+              </div>
+
+              <div className="bg-[#1a1a1a] rounded-lg p-4 border border-[#3a3a3a]">
+                <h3 className="text-sm font-medium text-gray-400 mb-2">Accuracy by confidence tier</h3>
+                <div className="grid grid-cols-3 gap-4 text-sm">
+                  {backtest.tiers.map((t) => (
+                    <div key={t.label}>
+                      <div className="text-white font-bold">{t.accuracy == null ? '—' : `${(t.accuracy * 100).toFixed(1)}%`}</div>
+                      <div className="text-gray-500 text-xs">{t.label} (n={t.n})</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-[#1a1a1a] rounded-lg p-4 border border-[#3a3a3a]">
+                <h3 className="text-sm font-medium text-gray-400 mb-2">Calibration (predicted → actual win rate)</h3>
+                <div className="space-y-1 text-xs">
+                  {backtest.calibration.map((b) => (
+                    <div key={b.rangeLabel} className="flex items-center gap-3">
+                      <span className="text-gray-500 w-16">{b.rangeLabel}</span>
+                      <span className="text-gray-400 w-28">pred {(b.predicted * 100).toFixed(0)}% → act {(b.actual * 100).toFixed(0)}%</span>
+                      <div className="flex-1 bg-[#0d0d0d] rounded h-2 overflow-hidden">
+                        <div className="bg-[#c9a227] h-full" style={{ width: `${Math.min(100, b.actual * 100)}%` }} />
+                      </div>
+                      <span className="text-gray-600 w-12 text-right">n={b.n}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <p className="text-xs text-gray-600">
+                Model {backtest.modelVersion}. Dataset lacks historical streak/record, so the historical / experience / durability factors run neutral here — measures the model&apos;s core.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Data Sources */}
