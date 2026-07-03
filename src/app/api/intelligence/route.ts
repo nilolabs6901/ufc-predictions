@@ -7,6 +7,27 @@ import {
   type CampData,
 } from '@/lib/prediction-engine/injury-camp-analyzer';
 
+// Shared auth check — requires ADMIN_API_KEY header, falls back to CRON_SECRET Bearer token.
+// Fails closed: if neither env var is set, always returns 401.
+function checkWriteAuth(request: NextRequest): Response | null {
+  const adminApiKey = process.env.ADMIN_API_KEY;
+  const cronSecret = process.env.CRON_SECRET;
+
+  if (adminApiKey) {
+    if (request.headers.get('x-api-key') !== adminApiKey) {
+      return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401 });
+    }
+  } else if (cronSecret) {
+    if (request.headers.get('authorization') !== `Bearer ${cronSecret}`) {
+      return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401 });
+    }
+  } else {
+    return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401 });
+  }
+
+  return null; // authorized
+}
+
 // GET: Retrieve intelligence for a fighter or fight
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -181,6 +202,9 @@ export async function GET(request: NextRequest) {
 
 // POST: Add new injury or camp intelligence
 export async function POST(request: NextRequest) {
+  const authError = checkWriteAuth(request);
+  if (authError) return authError;
+
   try {
     const body = await request.json();
     const { type, fighterId, fightId, data } = body;
@@ -251,6 +275,9 @@ export async function POST(request: NextRequest) {
 
 // PATCH: Update injury recovery status
 export async function PATCH(request: NextRequest) {
+  const authError = checkWriteAuth(request);
+  if (authError) return authError;
+
   try {
     const body = await request.json();
     const { injuryId, isRecovered, recoveryDate } = body;

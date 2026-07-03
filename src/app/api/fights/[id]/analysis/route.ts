@@ -43,6 +43,22 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Gate behind admin key or cron secret — fail closed if neither is set
+  const adminApiKey = process.env.ADMIN_API_KEY;
+  const cronSecret = process.env.CRON_SECRET;
+
+  if (adminApiKey) {
+    if (request.headers.get('x-api-key') !== adminApiKey) {
+      return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401 });
+    }
+  } else if (cronSecret) {
+    if (request.headers.get('authorization') !== `Bearer ${cronSecret}`) {
+      return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401 });
+    }
+  } else {
+    return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401 });
+  }
+
   try {
     const { id: fightId } = await params;
 
