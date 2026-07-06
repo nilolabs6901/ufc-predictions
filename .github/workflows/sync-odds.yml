@@ -18,13 +18,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Trigger odds sync
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::error::CRON_SECRET repo secret is not set. Add it under Settings → Secrets and variables → Actions, using the same value as CRON_SECRET on Railway. The sync endpoint rejects requests without a matching secret (HTTP 401)."
+            exit 1
+          fi
           echo "Triggering odds sync…"
           code=$(curl -sS -o /tmp/resp.json -w "%{http_code}" \
             -X POST "https://discerning-gentleness-production-6ec9.up.railway.app/api/sync?type=odds" \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Authorization: Bearer $CRON_SECRET" \
             -H "content-type: application/json")
           echo "HTTP $code"
           cat /tmp/resp.json
           echo
+          if [ "$code" = "401" ]; then
+            echo "::error::Sync endpoint returned 401 (unauthorized). The CRON_SECRET repo secret does not match the CRON_SECRET set on Railway. Update one so they match."
+          fi
           test "$code" = "200"
