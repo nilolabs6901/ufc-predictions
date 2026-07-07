@@ -7,19 +7,32 @@ const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
-async function clearAnalysis() {
-  console.log('Clearing AI Matchup Analysis cache for UFC 324...');
+const eventName = process.argv[2] || 'UFC 325';
 
-  const deleted = await prisma.matchupAnalysis.deleteMany({
+async function clearAnalysis() {
+  console.log(`Clearing AI analysis cache for ${eventName}...`);
+
+  // Clear individual model analyses
+  const deletedModels = await prisma.modelAnalysis.deleteMany({
     where: {
       fight: {
-        event: { name: { contains: 'UFC 324' } }
+        event: { name: { contains: eventName } }
       }
     }
   });
+  console.log(`Deleted ${deletedModels.count} individual model analyses`);
 
-  console.log(`Deleted ${deleted.count} cached AI analyses`);
-  console.log('New analyses will be generated on next modal open');
+  // Clear main matchup analyses
+  const deleted = await prisma.matchupAnalysis.deleteMany({
+    where: {
+      fight: {
+        event: { name: { contains: eventName } }
+      }
+    }
+  });
+  console.log(`Deleted ${deleted.count} cached matchup analyses`);
+
+  console.log('New multi-model analyses will be generated on next fight modal open');
 
   await prisma.$disconnect();
 }

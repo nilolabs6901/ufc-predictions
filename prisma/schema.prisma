@@ -240,6 +240,7 @@ model Fight {
 
   predictions     Prediction[]
   matchupAnalysis MatchupAnalysis?
+  modelAnalyses   ModelAnalysis[]
   oddsHistory     OddsHistory[]
 
   createdAt       DateTime @default(now())
@@ -398,6 +399,44 @@ model MatchupAnalysis {
   tokensUsed          Int?
   generatedAt         DateTime @default(now())
 
+  // Multi-model consensus fields
+  consensusType       String?  // "unanimous", "majority", "split"
+  modelsAgree         Int      @default(1)
+  modelsTotal         Int      @default(1)
+  avgWinProbability   Float?
+  modelBreakdown      Json?    // [{provider, pick, confidence, winProbability}]
+
+  @@index([fightId])
+}
+
+// Individual AI model analysis results
+model ModelAnalysis {
+  id                  String   @id @default(cuid())
+  fightId             String
+  fight               Fight    @relation(fields: [fightId], references: [id], onDelete: Cascade)
+
+  provider            String   // "claude", "openai", "gemini"
+  modelId             String   // e.g. "claude-sonnet-4-20250514", "gpt-4o", "gemini-2.0-flash"
+
+  matchupSummary      String
+  pickExplanation     String
+  keyFactorNarrative  String?
+
+  recommendedPick     String   // "fighterA" or "fighterB"
+  recommendedFighter  String
+  winProbability      Float
+  confidenceLevel     String   // "high", "medium", "low"
+
+  bettingInsight      String?
+  cautionFlags        String[]
+
+  tokensUsed          Int?
+  latencyMs           Int?
+  error               String?
+
+  generatedAt         DateTime @default(now())
+
+  @@unique([fightId, provider])
   @@index([fightId])
 }
 

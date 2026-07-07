@@ -1,22 +1,10 @@
-import Anthropic from '@anthropic-ai/sdk';
+/**
+ * Matchup Analyzer - Main entry point for AI analysis
+ * Now delegates to multi-model system when multiple providers are available
+ */
 
-// Lazy initialization - client is created on first use
-let anthropicClient: Anthropic | null = null;
-
-function getAnthropicClient(): Anthropic | null {
-  if (anthropicClient) return anthropicClient;
-
-  // Try UFC_ANTHROPIC_KEY first (to avoid system env override), then fall back to ANTHROPIC_API_KEY
-  const apiKey = process.env.UFC_ANTHROPIC_KEY || process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    console.log('No Anthropic API key found in environment');
-    return null;
-  }
-
-  console.log('Initializing Anthropic client with API key');
-  anthropicClient = new Anthropic({ apiKey });
-  return anthropicClient;
-}
+import { runMultiModelAnalysis } from './multi-model-analyzer';
+import type { MultiModelResult } from './types';
 
 export interface FighterAnalysisData {
   name: string;
@@ -93,34 +81,54 @@ export interface MatchupAnalysisOutput {
   bettingInsight?: string;
   cautionFlags: string[];
   tokensUsed: number;
+  // Multi-model fields
+  multiModel?: MultiModelResult;
 }
 
+/**
+ * Generate matchup analysis using all available AI models
+ */
 export async function generateMatchupAnalysis(
   input: MatchupAnalysisInput
 ): Promise<MatchupAnalysisOutput> {
-  const { fighterA, fighterB, prediction, context } = input;
+  const { fighterA, fighterB, prediction } = input;
 
   const isPickA = prediction.fighterAWinProb > 0.5;
-  const recommendedFighter = isPickA ? fighterA.name : fighterB.name;
   const winProb = isPickA ? prediction.fighterAWinProb : prediction.fighterBWinProb;
 
-  // Build factor breakdown from prediction factors
+  // Build factor breakdown and caution flags (always computed from stats)
   const factorBreakdown = buildFactorBreakdown(fighterA, fighterB, prediction);
-
-  // Determine confidence level
+  const cautionFlags = buildCautionFlags(fighterA, fighterB, prediction);
   const confidenceLevel = prediction.confidence >= 0.65 ? 'high'
     : prediction.confidence >= 0.50 ? 'medium' : 'low';
 
-  // Build caution flags
-  const cautionFlags = buildCautionFlags(fighterA, fighterB, prediction);
+  try {
+    // Run multi-model analysis
+    const multiResult = await runMultiModelAnalysis(
+      fighterA, fighterB, prediction, input.context, factorBreakdown
+    );
 
-  // Get the Anthropic client (lazy initialization)
-  const anthropic = getAnthropicClient();
+    const primary = multiResult.primaryAnalysis;
 
-  // If no API key, return a basic analysis without calling Claude
-  if (!anthropic) {
     return {
-      matchupSummary: `${fighterA.name} (${fighterA.fightingStyle}) faces ${fighterB.name} (${fighterB.fightingStyle}) in a ${context.weightClass} bout. ${context.isTitleFight ? 'This is a title fight scheduled for ' + context.scheduledRounds + ' rounds.' : ''}`,
+      matchupSummary: primary.matchupSummary,
+      pickExplanation: primary.pickExplanation,
+      keyFactorNarrative: primary.keyFactorNarrative,
+      recommendedPick: primary.recommendedPick,
+      recommendedFighter: primary.recommendedFighter,
+      winProbability: primary.winProbability,
+      confidenceLevel: primary.confidenceLevel,
+      factorBreakdown,
+      bettingInsight: primary.bettingInsight,
+      cautionFlags,
+      tokensUsed: multiResult.analyses.reduce((sum, a) => sum + a.tokensUsed, 0),
+      multiModel: multiResult,
+    };
+  } catch {
+    // No providers available — return statistical-only analysis
+    const recommendedFighter = isPickA ? fighterA.name : fighterB.name;
+    return {
+      matchupSummary: `${fighterA.name} (${fighterA.fightingStyle}) faces ${fighterB.name} (${fighterB.fightingStyle}) in a ${input.context.weightClass} bout.${input.context.isTitleFight ? ' This is a title fight scheduled for ' + input.context.scheduledRounds + ' rounds.' : ''}`,
       pickExplanation: `Based on statistical analysis, ${recommendedFighter} is the predicted winner with a ${(winProb * 100).toFixed(1)}% probability. The model confidence is ${confidenceLevel}.`,
       keyFactorNarrative: prediction.insights[0] || undefined,
       recommendedPick: isPickA ? 'fighterA' : 'fighterB',
@@ -128,152 +136,14 @@ export async function generateMatchupAnalysis(
       winProbability: winProb,
       confidenceLevel,
       factorBreakdown,
-      bettingInsight: 'AI-powered betting insights require ANTHROPIC_API_KEY configuration.',
+      bettingInsight: 'AI-powered analysis requires at least one API key (ANTHROPIC, OPENAI, or GOOGLE_AI).',
       cautionFlags,
       tokensUsed: 0,
     };
   }
-
-  // Build the prompt for Claude
-  const prompt = buildAnalysisPrompt(fighterA, fighterB, prediction, context, factorBreakdown);
-
-  // Call Claude API
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
-    max_tokens: 1024,
-    messages: [
-      {
-        role: 'user',
-        content: prompt,
-      },
-    ],
-  });
-
-  // Parse the response
-  const content = response.content[0];
-  if (content.type !== 'text') {
-    throw new Error('Unexpected response type');
-  }
-
-  const parsed = parseAnalysisResponse(content.text);
-
-  return {
-    matchupSummary: parsed.matchupSummary,
-    pickExplanation: parsed.pickExplanation,
-    keyFactorNarrative: parsed.keyFactorNarrative,
-    recommendedPick: isPickA ? 'fighterA' : 'fighterB',
-    recommendedFighter,
-    winProbability: winProb,
-    confidenceLevel,
-    factorBreakdown,
-    bettingInsight: parsed.bettingInsight,
-    cautionFlags,
-    tokensUsed: response.usage.input_tokens + response.usage.output_tokens,
-  };
 }
 
-function buildAnalysisPrompt(
-  fighterA: FighterAnalysisData,
-  fighterB: FighterAnalysisData,
-  prediction: PredictionData,
-  context: MatchupAnalysisInput['context'],
-  factorBreakdown: FactorBreakdownItem[]
-): string {
-  const isPickA = prediction.fighterAWinProb > 0.5;
-  const pick = isPickA ? fighterA : fighterB;
-  const winProb = isPickA ? prediction.fighterAWinProb : prediction.fighterBWinProb;
-
-  // Format the top factors
-  const topFactors = factorBreakdown
-    .sort((a, b) => Math.abs(b.impact) - Math.abs(a.impact))
-    .slice(0, 5)
-    .map(f => `- ${f.displayName}: ${f.fighterAValue} vs ${f.fighterBValue} (${f.advantage === 'A' ? fighterA.name : f.advantage === 'B' ? fighterB.name : 'Even'} +${Math.abs(f.impact).toFixed(1)}%)`)
-    .join('\n');
-
-  return `You are an expert MMA analyst. Write analysis for this UFC fight.
-
-## FIGHT INFO
-${fighterA.name}${fighterA.nickname ? ` "${fighterA.nickname}"` : ''} vs ${fighterB.name}${fighterB.nickname ? ` "${fighterB.nickname}"` : ''}
-Weight Class: ${context.weightClass}
-${context.isTitleFight ? 'TITLE FIGHT - ' : ''}${context.scheduledRounds} Rounds
-${context.isMainEvent ? 'Main Event' : ''}
-
-## FIGHTER A: ${fighterA.name}
-- Record: ${fighterA.history.wins}-${fighterA.history.losses}
-- Style: ${fighterA.fightingStyle} (${fighterA.fightingApproach || 'balanced'})
-- Stance: ${fighterA.stance}
-- Reach: ${fighterA.reach || 'N/A'}cm
-- Stats: ${fighterA.stats.slpm.toFixed(2)} SLpM, ${fighterA.stats.strAcc}% Str Acc, ${fighterA.stats.tdAvg.toFixed(2)} TD/15min, ${fighterA.stats.tdDef}% TD Def
-- Recent: ${fighterA.history.last5Record}, ${fighterA.history.currentStreak > 0 ? '+' : ''}${fighterA.history.currentStreak} streak
-- Finish rate: ${(fighterA.history.careerFinishRate * 100).toFixed(0)}%
-- KO'd ${fighterA.history.timesKOd}x, Subbed ${fighterA.history.timesSubmitted}x
-- Days since last fight: ${fighterA.history.daysSinceLastFight}
-
-## FIGHTER B: ${fighterB.name}
-- Record: ${fighterB.history.wins}-${fighterB.history.losses}
-- Style: ${fighterB.fightingStyle} (${fighterB.fightingApproach || 'balanced'})
-- Stance: ${fighterB.stance}
-- Reach: ${fighterB.reach || 'N/A'}cm
-- Stats: ${fighterB.stats.slpm.toFixed(2)} SLpM, ${fighterB.stats.strAcc}% Str Acc, ${fighterB.stats.tdAvg.toFixed(2)} TD/15min, ${fighterB.stats.tdDef}% TD Def
-- Recent: ${fighterB.history.last5Record}, ${fighterB.history.currentStreak > 0 ? '+' : ''}${fighterB.history.currentStreak} streak
-- Finish rate: ${(fighterB.history.careerFinishRate * 100).toFixed(0)}%
-- KO'd ${fighterB.history.timesKOd}x, Subbed ${fighterB.history.timesSubmitted}x
-- Days since last fight: ${fighterB.history.daysSinceLastFight}
-
-## MODEL PREDICTION
-Pick: ${pick.name} (${(winProb * 100).toFixed(1)}%)
-Confidence: ${prediction.confidence >= 0.65 ? 'HIGH' : prediction.confidence >= 0.50 ? 'MEDIUM' : 'LOW'} (${(prediction.confidence * 100).toFixed(0)}%)
-
-## TOP FACTORS
-${topFactors}
-
-## EXISTING INSIGHTS
-${prediction.insights.join('\n')}
-
----
-
-Write your analysis in the following JSON format:
-
-{
-  "matchupSummary": "2-3 sentences describing the matchup dynamics, styles, and what makes this fight interesting. Be specific about technique matchups.",
-  "pickExplanation": "A paragraph (3-5 sentences) explaining why ${pick.name} is the pick. Reference specific stats and advantages. Be analytical, not promotional.",
-  "keyFactorNarrative": "Optional 2-3 sentences diving deeper into the single most important factor.",
-  "bettingInsight": "One sentence about betting value or angle, if any. Be honest if there's no edge."
-}
-
-Write like a knowledgeable analyst, not a hype man. Be specific with numbers. Acknowledge risks.`;
-}
-
-function parseAnalysisResponse(text: string): {
-  matchupSummary: string;
-  pickExplanation: string;
-  keyFactorNarrative?: string;
-  bettingInsight?: string;
-} {
-  try {
-    // Try to extract JSON from the response
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
-      return {
-        matchupSummary: parsed.matchupSummary || '',
-        pickExplanation: parsed.pickExplanation || '',
-        keyFactorNarrative: parsed.keyFactorNarrative || undefined,
-        bettingInsight: parsed.bettingInsight || undefined,
-      };
-    }
-  } catch (e) {
-    console.error('Failed to parse AI response as JSON:', e);
-  }
-
-  // Fallback: return the raw text as summary
-  return {
-    matchupSummary: text.slice(0, 500),
-    pickExplanation: 'Analysis generation encountered an issue. Please refer to the factor breakdown below.',
-  };
-}
-
-function buildFactorBreakdown(
+export function buildFactorBreakdown(
   fighterA: FighterAnalysisData,
   fighterB: FighterAnalysisData,
   prediction: PredictionData
@@ -281,7 +151,6 @@ function buildFactorBreakdown(
   const factors = prediction.factors;
   const breakdown: FactorBreakdownItem[] = [];
 
-  // Striking
   const strikingFactor = factors.strikingAdvantage || 0;
   breakdown.push({
     factor: 'strikingAdvantage',
@@ -293,7 +162,6 @@ function buildFactorBreakdown(
     emoji: '🥊',
   });
 
-  // Grappling
   const grapplingFactor = factors.grapplingAdvantage || 0;
   breakdown.push({
     factor: 'grapplingAdvantage',
@@ -305,7 +173,6 @@ function buildFactorBreakdown(
     emoji: '🤼',
   });
 
-  // Durability
   const durabilityFactor = factors.durability || 0;
   breakdown.push({
     factor: 'durability',
@@ -317,7 +184,6 @@ function buildFactorBreakdown(
     emoji: '🛡️',
   });
 
-  // Physical attributes
   const physicalFactor = factors.physicalAttributes || 0;
   if (fighterA.reach && fighterB.reach) {
     breakdown.push({
@@ -331,7 +197,6 @@ function buildFactorBreakdown(
     });
   }
 
-  // Historical/Momentum
   const historyFactor = factors.historicalPerformance || 0;
   breakdown.push({
     factor: 'historicalPerformance',
@@ -343,7 +208,6 @@ function buildFactorBreakdown(
     emoji: '📈',
   });
 
-  // Style matchup
   const styleFactor = factors.styleMatchup || 0;
   breakdown.push({
     factor: 'styleMatchup',
@@ -355,7 +219,6 @@ function buildFactorBreakdown(
     emoji: '🎯',
   });
 
-  // Championship rounds experience
   const champFactor = factors.championshipRounds || 0;
   if (champFactor !== 0) {
     breakdown.push({
@@ -369,7 +232,6 @@ function buildFactorBreakdown(
     });
   }
 
-  // Market signal
   const marketFactor = factors.marketSignal || 0;
   if (marketFactor !== 0) {
     breakdown.push({
@@ -386,7 +248,7 @@ function buildFactorBreakdown(
   return breakdown.sort((a, b) => Math.abs(b.impact) - Math.abs(a.impact));
 }
 
-function buildCautionFlags(
+export function buildCautionFlags(
   fighterA: FighterAnalysisData,
   fighterB: FighterAnalysisData,
   prediction: PredictionData
@@ -396,28 +258,23 @@ function buildCautionFlags(
   const pick = prediction.fighterAWinProb > 0.5 ? fighterA : fighterB;
   const opponent = prediction.fighterAWinProb > 0.5 ? fighterB : fighterA;
 
-  // Close fight
   const diff = Math.abs(prediction.fighterAWinProb - 0.5);
   if (diff < 0.1) {
     flags.push('Close matchup - consider smaller stake');
   }
 
-  // Pick has durability issues
   if (pick.history.timesKOd >= 2) {
     flags.push(`${pick.name} has been KO'd ${pick.history.timesKOd}x - knockout risk`);
   }
 
-  // Ring rust on the pick
   if (pick.history.daysSinceLastFight > 365) {
     flags.push(`${pick.name} hasn't fought in ${Math.floor(pick.history.daysSinceLastFight / 30)} months`);
   }
 
-  // Opponent is dangerous finisher
   if (opponent.history.careerFinishRate > 0.7) {
     flags.push(`${opponent.name} finishes ${(opponent.history.careerFinishRate * 100).toFixed(0)}% of wins`);
   }
 
-  // Pick on losing streak
   if (pick.history.currentStreak < 0) {
     flags.push(`${pick.name} on ${Math.abs(pick.history.currentStreak)}-fight skid`);
   }

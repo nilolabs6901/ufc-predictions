@@ -20,8 +20,15 @@ export async function GET(
     });
 
     if (cached) {
+      // Also fetch individual model analyses
+      const modelAnalyses = await prisma.modelAnalysis.findMany({
+        where: { fightId },
+        orderBy: { generatedAt: 'desc' },
+      });
+
       return NextResponse.json({
         analysis: cached,
+        modelAnalyses,
         source: 'cache',
       });
     }
@@ -46,16 +53,28 @@ export async function POST(
   try {
     const { id: fightId } = await params;
 
-    // Check for existing analysis first
-    const existing = await prisma.matchupAnalysis.findUnique({
-      where: { fightId },
-    });
+    // Check for force regeneration
+    const body = await request.json().catch(() => ({}));
+    const forceRegenerate = (body as { force?: boolean }).force === true;
 
-    if (existing) {
-      return NextResponse.json({
-        analysis: existing,
-        source: 'cache',
+    if (!forceRegenerate) {
+      // Check for existing analysis first
+      const existing = await prisma.matchupAnalysis.findUnique({
+        where: { fightId },
       });
+
+      if (existing) {
+        const modelAnalyses = await prisma.modelAnalysis.findMany({
+          where: { fightId },
+          orderBy: { generatedAt: 'desc' },
+        });
+
+        return NextResponse.json({
+          analysis: existing,
+          modelAnalyses,
+          source: 'cache',
+        });
+      }
     }
 
     // Fetch fight with all necessary data
@@ -177,10 +196,64 @@ export async function POST(
       },
     };
 
-    // Generate analysis using Claude
+    // Generate analysis using all available models
     const analysis = await generateMatchupAnalysis(input);
 
-    // Save to database (upsert to handle existing records)
+    // Save individual model analyses
+    const savedModelAnalyses = [];
+    if (analysis.multiModel) {
+      for (const modelResult of analysis.multiModel.analyses) {
+        try {
+          const saved = await prisma.modelAnalysis.upsert({
+            where: {
+              fightId_provider: {
+                fightId,
+                provider: modelResult.provider,
+              },
+            },
+            update: {
+              modelId: modelResult.modelId,
+              matchupSummary: modelResult.matchupSummary,
+              pickExplanation: modelResult.pickExplanation,
+              keyFactorNarrative: modelResult.keyFactorNarrative,
+              recommendedPick: modelResult.recommendedPick,
+              recommendedFighter: modelResult.recommendedFighter,
+              winProbability: modelResult.winProbability,
+              confidenceLevel: modelResult.confidenceLevel,
+              bettingInsight: modelResult.bettingInsight,
+              cautionFlags: modelResult.cautionFlags,
+              tokensUsed: modelResult.tokensUsed,
+              latencyMs: modelResult.latencyMs,
+              error: modelResult.error,
+              generatedAt: new Date(),
+            },
+            create: {
+              fightId,
+              provider: modelResult.provider,
+              modelId: modelResult.modelId,
+              matchupSummary: modelResult.matchupSummary,
+              pickExplanation: modelResult.pickExplanation,
+              keyFactorNarrative: modelResult.keyFactorNarrative,
+              recommendedPick: modelResult.recommendedPick,
+              recommendedFighter: modelResult.recommendedFighter,
+              winProbability: modelResult.winProbability,
+              confidenceLevel: modelResult.confidenceLevel,
+              bettingInsight: modelResult.bettingInsight,
+              cautionFlags: modelResult.cautionFlags,
+              tokensUsed: modelResult.tokensUsed,
+              latencyMs: modelResult.latencyMs,
+              error: modelResult.error,
+            },
+          });
+          savedModelAnalyses.push(saved);
+        } catch (e) {
+          console.error(`Failed to save ${modelResult.provider} analysis:`, e);
+        }
+      }
+    }
+
+    // Save/update the main matchup analysis with consensus fields
+    const consensus = analysis.multiModel?.consensus;
     const saved = await prisma.matchupAnalysis.upsert({
       where: { fightId },
       update: {
@@ -195,6 +268,11 @@ export async function POST(
         bettingInsight: analysis.bettingInsight,
         cautionFlags: analysis.cautionFlags,
         tokensUsed: analysis.tokensUsed,
+        consensusType: consensus?.consensusType || null,
+        modelsAgree: consensus?.modelsAgree || 1,
+        modelsTotal: consensus?.modelsTotal || 1,
+        avgWinProbability: consensus?.avgWinProbability || null,
+        modelBreakdown: consensus?.modelBreakdown ? JSON.parse(JSON.stringify(consensus.modelBreakdown)) : null,
       },
       create: {
         fightId,
@@ -209,11 +287,17 @@ export async function POST(
         bettingInsight: analysis.bettingInsight,
         cautionFlags: analysis.cautionFlags,
         tokensUsed: analysis.tokensUsed,
+        consensusType: consensus?.consensusType || null,
+        modelsAgree: consensus?.modelsAgree || 1,
+        modelsTotal: consensus?.modelsTotal || 1,
+        avgWinProbability: consensus?.avgWinProbability || null,
+        modelBreakdown: consensus?.modelBreakdown ? JSON.parse(JSON.stringify(consensus.modelBreakdown)) : null,
       },
     });
 
     return NextResponse.json({
       analysis: saved,
+      modelAnalyses: savedModelAnalyses,
       source: 'generated',
     });
   } catch (error) {
