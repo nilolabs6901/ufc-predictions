@@ -30,81 +30,37 @@ const HERO_BG = '/hero-freedom250.webp';
 const OCTAGON_BG = '/event-card-bg.webp';
 const STATS_BG = '/stats-bg.webp';
 
-// ─── Data — UFC Freedom 250 (scraped from UFC.com, Jun 8 2026) ───────────────
+// ─── Data — UFC 329 (Jul 11 2026) ────────────────────────────────────────────
 const upcomingEvents = [
   {
-    id: 'ufc-freedom-250',
-    name: 'UFC Freedom 250',
-    date: 'Sun, Jun 14, 2026',
-    time: '8:00 PM EDT',
-    location: 'The White House, Washington, D.C.',
-    type: 'PPV',
-    isLive: false,
-    subtitle: 'Presented by Crypto.com and RAM',
-    watchLink: 'https://ufc.ac/4v2K4zW',
-    mainEvent: {
-      fighter1: '(C) Ilia Topuria',
-      fighter2: '(IC) Justin Gaethje',
-      division: 'Lightweight Title Bout',
-    },
-    mainCard: [
-      { fighter1: 'Ilia Topuria', fighter2: 'Justin Gaethje', division: 'Lightweight Title Bout', rank1: 'C', rank2: 'IC', odds1: null, odds2: null },
-      { fighter1: 'Alex Pereira', fighter2: 'Ciryl Gane', division: 'Heavyweight Interim Title Bout', rank1: '#1', rank2: null, odds1: -115, odds2: -105 },
-      { fighter1: "Sean O'Malley", fighter2: 'Aiemann Zahabi', division: 'Bantamweight Bout', rank1: '#3', rank2: '#6', odds1: -360, odds2: 280 },
-      { fighter1: 'Josh Hokit', fighter2: 'Derrick Lewis', division: 'Heavyweight Bout', rank1: '#5', rank2: '#9', odds1: -330, odds2: 265 },
-      { fighter1: 'Mauricio Ruffy', fighter2: 'Michael Chandler', division: 'Lightweight Bout', rank1: '#9', rank2: '#13', odds1: -700, odds2: 500 },
-      { fighter1: 'Bo Nickal', fighter2: 'Kyle Daukaus', division: 'Middleweight Bout', rank1: null, rank2: null, odds1: -300, odds2: 240 },
-      { fighter1: 'Diego Lopes', fighter2: 'Steve Garcia', division: 'Featherweight Bout', rank1: '#2', rank2: '#9', odds1: -185, odds2: 155 },
-    ],
-    fights: 7,
-  },
-  {
-    id: 'ufc-fight-night-june-20-2026',
-    name: 'UFC Fight Night: Kape vs Horiguchi',
-    date: 'Sat, Jun 20, 2026',
-    time: '6:00 PM EDT',
-    location: 'UFC APEX, Las Vegas, NV',
-    type: 'Fight Night',
-    isLive: false,
-    subtitle: null,
-    watchLink: null,
-    mainEvent: { fighter1: 'Manel Kape', fighter2: 'Kyoji Horiguchi', division: 'Flyweight Bout' },
-    mainCard: [],
-    fights: null,
-  },
-  {
-    id: 'ufc-fight-night-june-27-2026',
-    name: 'UFC Fight Night: Fiziev vs Torres',
-    date: 'Sat, Jun 27, 2026',
-    time: '1:00 PM EDT',
-    location: 'National Gymnastics Arena, Baku, Azerbaijan',
-    type: 'Fight Night',
-    isLive: false,
-    subtitle: null,
-    watchLink: null,
-    mainEvent: { fighter1: 'Rafael Fiziev', fighter2: 'Ignacio Torres', division: 'Lightweight Bout' },
-    mainCard: [],
-    fights: null,
-  },
-  {
     id: 'ufc-329',
-    name: 'UFC 329: McGregor vs Holloway 2',
+    name: 'UFC 329: McGregor vs. Holloway 2',
     date: 'Sat, Jul 11, 2026',
-    time: '10:00 PM EDT',
+    time: '9:00 PM ET',
     location: 'T-Mobile Arena, Las Vegas, NV',
     type: 'PPV',
     isLive: false,
-    subtitle: null,
-    watchLink: null,
-    mainEvent: { fighter1: 'Conor McGregor', fighter2: 'Max Holloway', division: 'Featherweight Bout' },
-    mainCard: [],
-    fights: null,
+    subtitle: 'UFC International Fight Week',
+    watchLink: 'https://www.ufc.com/event/ufc-329',
+    mainEvent: {
+      fighter1: 'Conor McGregor',
+      fighter2: 'Max Holloway',
+      division: 'Welterweight Bout',
+    },
+    mainCard: [
+      { fighter1: 'Conor McGregor', fighter2: 'Max Holloway', division: 'Welterweight Bout (5 Rds)', rank1: null, rank2: '#1', odds1: -140, odds2: 118 },
+      { fighter1: 'Paddy Pimblett', fighter2: 'Benoit Saint Denis', division: 'Lightweight Bout', rank1: '#4', rank2: '#8', odds1: -175, odds2: 148 },
+      { fighter1: 'Cory Sandhagen', fighter2: 'Mario Bautista', division: 'Bantamweight Bout', rank1: '#2', rank2: '#5', odds1: -165, odds2: 140 },
+      { fighter1: "Lone'er Kavanagh", fighter2: 'Brandon Royval', division: 'Flyweight Bout', rank1: '#6', rank2: '#7', odds1: -120, odds2: 100 },
+      { fighter1: 'Kevin Lee', fighter2: 'Terrance McKinney', division: 'Lightweight Bout', rank1: '#12', rank2: null, odds1: -130, odds2: 110 },
+    ],
+    fights: 13,
   },
   {
     id: 'ufc-fight-night-july-25-2026',
     name: 'UFC Fight Night: Ankalaev vs Rountree Jr.',
     date: 'Sat, Jul 25, 2026',
-    time: '1:00 PM EDT',
+    time: '1:00 PM ET',
     location: 'Etihad Arena, Abu Dhabi, UAE',
     type: 'Fight Night',
     isLive: false,
@@ -144,112 +100,93 @@ const keyFindings = [
 // ─── Hero Section ─────────────────────────────────────────────────────────────
 function HeroSection() {
   const nextEvent = upcomingEvents[0];
+  const f1Last = nextEvent.mainEvent.fighter1.split(' ').pop()!;
+  const f2Last = nextEvent.mainEvent.fighter2.split(' ').pop()!;
 
   return (
-    <section style={{ position: 'relative', width: '100%', minHeight: '560px', overflow: 'hidden', backgroundColor: '#0D0D0D' }}>
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          backgroundImage: `url(${HERO_BG})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center 20%',
-          backgroundRepeat: 'no-repeat',
-        }}
-      />
-      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.55) 50%, rgba(0,0,0,0.3) 100%)' }} />
-      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0) 60%)' }} />
+    <section style={{ position: 'relative', width: '100%', minHeight: '620px', overflow: 'hidden', backgroundColor: '#071420' }}>
+      {/* Atmospheric background */}
+      <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 120% 80% at 50% 60%, #0e2a42 0%, #071420 55%, #000 100%)' }} />
+      {/* Left spotlight */}
+      <div style={{ position: 'absolute', top: 0, left: 0, width: '50%', height: '100%', background: 'radial-gradient(ellipse 70% 90% at 15% 40%, rgba(14,42,66,0.6) 0%, transparent 70%)' }} />
+      {/* Right spotlight */}
+      <div style={{ position: 'absolute', top: 0, right: 0, width: '50%', height: '100%', background: 'radial-gradient(ellipse 70% 90% at 85% 40%, rgba(14,42,66,0.6) 0%, transparent 70%)' }} />
+      {/* Bottom vignette */}
+      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '35%', background: 'linear-gradient(to top, rgba(0,0,0,0.85), transparent)' }} />
 
-      <div
-        className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8"
-        style={{ position: 'relative', zIndex: 10, paddingTop: '80px', paddingBottom: '80px', minHeight: '560px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}
-      >
-        <div style={{ maxWidth: '680px' }}>
-          <div className="flex flex-wrap items-center gap-3 mb-4 animate-slide-up">
-            <span
-              style={{
-                backgroundColor: 'rgba(255,255,255,0.15)',
-                color: '#FFFFFF',
-                fontFamily: "'Barlow Condensed', sans-serif",
-                fontWeight: 700,
-                fontSize: '0.7rem',
-                letterSpacing: '0.15em',
-                textTransform: 'uppercase',
-                padding: '3px 10px',
-                border: '1px solid rgba(255,255,255,0.3)',
-              }}
-            >
-              {nextEvent.type} · Next Event
-            </span>
-            <span
-              style={{
-                backgroundColor: 'rgba(201,162,39,0.15)',
-                color: '#C9A227',
-                fontFamily: "'Barlow Condensed', sans-serif",
-                fontWeight: 700,
-                fontSize: '0.7rem',
-                letterSpacing: '0.15em',
-                textTransform: 'uppercase',
-                padding: '3px 10px',
-                border: '1px solid rgba(201,162,39,0.4)',
-              }}
-            >
-              Making Chama Great Again
-            </span>
-          </div>
+      {/* Center content */}
+      <div style={{ position: 'relative', zIndex: 10, minHeight: '620px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '80px 16px 60px' }}>
 
-          <p
-            className="animate-slide-up-delay-1"
-            style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 600, fontSize: 'clamp(0.75rem, 1.5vw, 0.9rem)', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)', marginBottom: '6px' }}
+        {/* Event label */}
+        <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 'clamp(0.8rem, 1.8vw, 1rem)', letterSpacing: '0.25em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)', marginBottom: '12px' }}>
+          UFC 329
+        </p>
+
+        {/* Fighter 1 */}
+        <h1 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 'clamp(3.5rem, 11vw, 7.5rem)', lineHeight: 0.88, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#FFFFFF', margin: 0, textShadow: '0 4px 40px rgba(0,0,0,0.5)' }}>
+          {f1Last}
+        </h1>
+
+        {/* VS */}
+        <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 'clamp(1rem, 2.5vw, 1.6rem)', letterSpacing: '0.3em', color: 'rgba(255,255,255,0.75)', margin: '6px 0' }}>
+          VS
+        </p>
+
+        {/* Fighter 2 */}
+        <h1 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 'clamp(3.5rem, 11vw, 7.5rem)', lineHeight: 0.88, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#FFFFFF', margin: 0, textShadow: '0 4px 40px rgba(0,0,0,0.5)' }}>
+          {f2Last} 2
+        </h1>
+
+        {/* Divider */}
+        <div style={{ width: '40px', height: '2px', backgroundColor: '#D20A0A', margin: '24px auto' }} />
+
+        {/* Date / venue */}
+        <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 600, fontSize: 'clamp(0.85rem, 1.8vw, 1.05rem)', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.85)', marginBottom: '4px' }}>
+          Sat, Jul 11 / 9:00 PM EDT
+        </p>
+        <p style={{ fontFamily: "'Barlow', sans-serif", fontWeight: 400, fontSize: 'clamp(0.78rem, 1.5vw, 0.9rem)', color: 'rgba(255,255,255,0.5)', marginBottom: '32px', letterSpacing: '0.04em' }}>
+          {nextEvent.location}
+        </p>
+
+        {/* Buttons */}
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
+          <Link
+            href={`/events/${nextEvent.id}`}
+            style={{
+              fontFamily: "'Barlow Condensed', sans-serif",
+              fontWeight: 800,
+              fontSize: '0.85rem',
+              letterSpacing: '0.15em',
+              textTransform: 'uppercase',
+              backgroundColor: '#FFFFFF',
+              color: '#000000',
+              padding: '12px 28px',
+              textDecoration: 'none',
+              display: 'inline-block',
+            }}
           >
-            {nextEvent.name} | {nextEvent.subtitle}
-          </p>
-
-          <h1
-            className="animate-slide-up-delay-1"
-            style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 'clamp(3rem, 9vw, 6.5rem)', lineHeight: 0.9, letterSpacing: '0.02em', textTransform: 'uppercase', color: '#FFFFFF', marginBottom: '12px', textShadow: '0 2px 30px rgba(0,0,0,0.6)' }}
+            View Fight Card
+          </Link>
+          <a
+            href="https://ufc.ac/4v2K4zW"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              fontFamily: "'Barlow Condensed', sans-serif",
+              fontWeight: 800,
+              fontSize: '0.85rem',
+              letterSpacing: '0.15em',
+              textTransform: 'uppercase',
+              backgroundColor: 'transparent',
+              color: '#FFFFFF',
+              padding: '12px 28px',
+              textDecoration: 'none',
+              display: 'inline-block',
+              border: '2px solid rgba(255,255,255,0.6)',
+            }}
           >
-            TOPURIA VS GAETHJE
-          </h1>
-
-          <p
-            className="animate-slide-up-delay-1"
-            style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 600, fontSize: 'clamp(0.85rem, 1.8vw, 1.1rem)', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.8)', marginBottom: '8px' }}
-          >
-            History Will Be Made When The Octagon Touches Down At The White House
-          </p>
-
-          <p
-            className="animate-slide-up-delay-1"
-            style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 'clamp(0.8rem, 1.6vw, 1rem)', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#C9A227', marginBottom: '12px', fontStyle: 'italic' }}
-          >
-            Totally Gonna Chama On Your Mama
-          </p>
-
-          <div className="animate-slide-up-delay-2" style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
-            <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 'clamp(1rem, 2.5vw, 1.3rem)', letterSpacing: '0.05em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.9)' }}>
-              {nextEvent.mainEvent.fighter1}
-            </span>
-            <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 'clamp(1.2rem, 3vw, 1.8rem)', color: '#D20A0A', letterSpacing: '0.05em' }}>VS</span>
-            <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 'clamp(1rem, 2.5vw, 1.3rem)', letterSpacing: '0.05em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.9)' }}>
-              {nextEvent.mainEvent.fighter2}
-            </span>
-          </div>
-
-          <p className="animate-slide-up-delay-2" style={{ fontFamily: "'Barlow', sans-serif", fontWeight: 400, fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', marginBottom: '28px', letterSpacing: '0.04em' }}>
-            {nextEvent.date} · {nextEvent.time} · {nextEvent.location}
-          </p>
-
-          <div className="flex flex-wrap gap-4 animate-slide-up-delay-3">
-            <Link href={`/events/${nextEvent.id}`} className="ufc-btn-primary inline-flex items-center gap-2" style={{ textDecoration: 'none' }}>
-              View Fight Card
-              <ChevronRight size={16} />
-            </Link>
-            <a href="https://ufc.ac/4v2K4zW" target="_blank" rel="noopener noreferrer" className="ufc-btn-outline inline-flex items-center gap-2" style={{ textDecoration: 'none' }}>
-              Watch on Paramount+
-              <ArrowRight size={16} />
-            </a>
-          </div>
+            Watch on Paramount+
+          </a>
         </div>
       </div>
     </section>
