@@ -34,7 +34,7 @@ const HOLLOWAY_IMG = '/holloway-329.png';
 // ─── Data — UFC 329 (Jul 11 2026) ────────────────────────────────────────────
 const upcomingEvents = [
   {
-    id: 'ufc-329',
+    id: 'cmrflvpsk003kuxitphdu0n0h',
     name: 'UFC 329: McGregor vs. Holloway 2',
     date: 'Sat, Jul 11, 2026',
     time: '9:00 PM ET',
@@ -272,9 +272,26 @@ function FightCardSection() {
   useEffect(() => {
     fetch(`/api/events/${event.id}`)
       .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
+      .then(async (d) => {
+        const fights = [
+          ...(d?.fights?.mainCard ?? []),
+          ...(d?.fights?.prelims ?? []),
+        ];
+        const fightsWithPreds = await Promise.all(
+          fights.map(async (f: any) => {
+            if (f.prediction) return f;
+            try {
+              const pr = await fetch(`/api/predictions/${f.id}`);
+              if (pr.ok) {
+                const pd = await pr.json();
+                return { ...f, prediction: pd.prediction };
+              }
+            } catch {}
+            return f;
+          })
+        );
         const map: Record<string, any> = {};
-        for (const f of d?.fights?.mainCard ?? []) {
+        for (const f of fightsWithPreds) {
           map[[f.fighterA.name, f.fighterB.name].sort().join('|')] = f;
         }
         setDetails(map);
