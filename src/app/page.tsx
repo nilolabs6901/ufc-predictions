@@ -104,43 +104,14 @@ function HeroSection() {
 
   return (
     <section style={{ position: 'relative', width: '100%', minHeight: '620px', overflow: 'hidden', backgroundColor: '#000' }}>
-      {/* Cinematic video background */}
-      <video
-        autoPlay
-        muted
-        loop
-        playsInline
-        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', zIndex: 0, opacity: 0.7 }}
-      >
-        <source src="/hero-bg.mp4" type="video/mp4" />
-      </video>
-      {/* Dark overlay to ensure text legibility */}
-      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.7) 100%)', zIndex: 1 }} />
-
-      {/* McGregor — left, facing right toward center */}
-      <div style={{ position: 'absolute', left: 0, bottom: 0, width: '52%', height: '100%', zIndex: 2 }}>
-        <img
-          src={MCGREGOR_IMG}
-          alt="Conor McGregor"
-          style={{ position: 'absolute', bottom: 0, left: '-4%', height: '100%', width: '100%', objectFit: 'contain', objectPosition: 'bottom right' }}
-        />
-        {/* Fade McGregor into center */}
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, transparent 30%, rgba(0,0,0,0.9) 100%)' }} />
-      </div>
-
-      {/* Holloway — right, facing left toward center */}
-      <div style={{ position: 'absolute', right: 0, bottom: 0, width: '52%', height: '100%', zIndex: 2 }}>
-        <img
-          src={HOLLOWAY_IMG}
-          alt="Max Holloway"
-          style={{ position: 'absolute', bottom: 0, right: '-4%', height: '100%', width: '100%', objectFit: 'contain', objectPosition: 'bottom left' }}
-        />
-        {/* Fade Holloway into center */}
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to left, transparent 30%, rgba(0,0,0,0.9) 100%)' }} />
-      </div>
-
-      {/* Bottom vignette */}
-      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '30%', background: 'linear-gradient(to top, rgba(0,0,0,0.9), transparent)', zIndex: 3 }} />
+      {/* Face-off hero image — full width, matches UFC.com reference */}
+      <img
+        src="/faceoff-hero.jpg"
+        alt="McGregor vs Holloway 2 face-off"
+        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', zIndex: 0 }}
+      />
+      {/* Gradient: darken top + strong bottom for text legibility */}
+      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.1) 35%, rgba(0,0,0,0.15) 55%, rgba(0,0,0,0.85) 100%)', zIndex: 1 }} />
 
       {/* Center text overlay */}
       <div style={{ position: 'relative', zIndex: 10, minHeight: '620px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '80px 20px 56px' }}>
