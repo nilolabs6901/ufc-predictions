@@ -103,9 +103,19 @@ function HeroSection() {
   const nextEvent = upcomingEvents[0];
 
   return (
-    <section style={{ position: 'relative', width: '100%', minHeight: '620px', overflow: 'hidden', backgroundColor: '#071e30' }}>
-      {/* Dark teal atmospheric background */}
-      <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 160% 100% at 50% 30%, #0d3352 0%, #071e30 50%, #000 100%)' }} />
+    <section style={{ position: 'relative', width: '100%', minHeight: '620px', overflow: 'hidden', backgroundColor: '#000' }}>
+      {/* Cinematic video background */}
+      <video
+        autoPlay
+        muted
+        loop
+        playsInline
+        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', zIndex: 0, opacity: 0.7 }}
+      >
+        <source src="/hero-bg.mp4" type="video/mp4" />
+      </video>
+      {/* Dark overlay to ensure text legibility */}
+      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.7) 100%)', zIndex: 1 }} />
 
       {/* McGregor — left, facing right toward center */}
       <div style={{ position: 'absolute', left: 0, bottom: 0, width: '52%', height: '100%', zIndex: 2 }}>
@@ -115,7 +125,7 @@ function HeroSection() {
           style={{ position: 'absolute', bottom: 0, left: '-4%', height: '100%', width: '100%', objectFit: 'contain', objectPosition: 'bottom right' }}
         />
         {/* Fade McGregor into center */}
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, transparent 30%, rgba(7,30,48,0.85) 100%)' }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, transparent 30%, rgba(0,0,0,0.9) 100%)' }} />
       </div>
 
       {/* Holloway — right, facing left toward center */}
@@ -126,7 +136,7 @@ function HeroSection() {
           style={{ position: 'absolute', bottom: 0, right: '-4%', height: '100%', width: '100%', objectFit: 'contain', objectPosition: 'bottom left' }}
         />
         {/* Fade Holloway into center */}
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to left, transparent 30%, rgba(7,30,48,0.85) 100%)' }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to left, transparent 30%, rgba(0,0,0,0.9) 100%)' }} />
       </div>
 
       {/* Bottom vignette */}
