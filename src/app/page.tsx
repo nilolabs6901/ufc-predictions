@@ -104,17 +104,28 @@ function HeroSection() {
 
   return (
     <section style={{ position: 'relative', width: '100%', minHeight: '620px', overflow: 'hidden', backgroundColor: '#000' }}>
-      {/* Animated face-off video — Higgsfield img2video from staredown photo */}
-      <video
-        autoPlay
-        muted
-        loop
-        playsInline
-        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', zIndex: 0 }}
-        poster="/faceoff-hero.jpg"
-      >
-        <source src="/faceoff-hero.mp4" type="video/mp4" />
-      </video>
+      {/* Ken Burns slow zoom — realistic, no AI face artifacts */}
+      <style>{`
+        @keyframes kenburns {
+          0%   { transform: scale(1.08) translateX(0px); }
+          50%  { transform: scale(1.14) translateX(-6px); }
+          100% { transform: scale(1.08) translateX(0px); }
+        }
+      `}</style>
+      <div style={{ position: 'absolute', inset: 0, zIndex: 0, overflow: 'hidden' }}>
+        <img
+          src="/faceoff-hero.jpg"
+          alt="McGregor vs Holloway face-off"
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            objectPosition: 'center top',
+            animation: 'kenburns 12s ease-in-out infinite',
+            transformOrigin: 'center top',
+          }}
+        />
+      </div>
       {/* Gradient: darken top + strong bottom for text legibility */}
       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.1) 35%, rgba(0,0,0,0.15) 55%, rgba(0,0,0,0.85) 100%)', zIndex: 1 }} />
 
