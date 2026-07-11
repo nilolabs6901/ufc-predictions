@@ -25,10 +25,11 @@ import {
   Activity,
 } from 'lucide-react';
 
-// ─── Local background assets (downloaded from the redesign handoff) ──────────
-const HERO_BG = '/hero-freedom250.webp';
+// ─── Local background assets ──────────────────────────────────────────────────
 const OCTAGON_BG = '/event-card-bg.webp';
 const STATS_BG = '/stats-bg.webp';
+const MCGREGOR_IMG = '/mcgregor-329.png';
+const HOLLOWAY_IMG = '/holloway-329.png';
 
 // ─── Data — UFC 329 (Jul 11 2026) ────────────────────────────────────────────
 const upcomingEvents = [
@@ -100,94 +101,81 @@ const keyFindings = [
 // ─── Hero Section ─────────────────────────────────────────────────────────────
 function HeroSection() {
   const nextEvent = upcomingEvents[0];
-  const f1Last = nextEvent.mainEvent.fighter1.split(' ').pop()!;
-  const f2Last = nextEvent.mainEvent.fighter2.split(' ').pop()!;
 
   return (
-    <section style={{ position: 'relative', width: '100%', minHeight: '620px', overflow: 'hidden', backgroundColor: '#071420' }}>
-      {/* Atmospheric background */}
-      <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 120% 80% at 50% 60%, #0e2a42 0%, #071420 55%, #000 100%)' }} />
-      {/* Left spotlight */}
-      <div style={{ position: 'absolute', top: 0, left: 0, width: '50%', height: '100%', background: 'radial-gradient(ellipse 70% 90% at 15% 40%, rgba(14,42,66,0.6) 0%, transparent 70%)' }} />
-      {/* Right spotlight */}
-      <div style={{ position: 'absolute', top: 0, right: 0, width: '50%', height: '100%', background: 'radial-gradient(ellipse 70% 90% at 85% 40%, rgba(14,42,66,0.6) 0%, transparent 70%)' }} />
+    <section style={{ position: 'relative', width: '100%', minHeight: '620px', overflow: 'hidden', backgroundColor: '#071e30' }}>
+      {/* Dark teal atmospheric background */}
+      <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 160% 100% at 50% 30%, #0d3352 0%, #071e30 50%, #000 100%)' }} />
+
+      {/* McGregor — left, facing right toward center */}
+      <div style={{ position: 'absolute', left: 0, bottom: 0, width: '52%', height: '100%', zIndex: 2 }}>
+        <img
+          src={MCGREGOR_IMG}
+          alt="Conor McGregor"
+          style={{ position: 'absolute', bottom: 0, left: '-4%', height: '100%', width: '100%', objectFit: 'contain', objectPosition: 'bottom right' }}
+        />
+        {/* Fade McGregor into center */}
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, transparent 30%, rgba(7,30,48,0.85) 100%)' }} />
+      </div>
+
+      {/* Holloway — right, facing left toward center */}
+      <div style={{ position: 'absolute', right: 0, bottom: 0, width: '52%', height: '100%', zIndex: 2 }}>
+        <img
+          src={HOLLOWAY_IMG}
+          alt="Max Holloway"
+          style={{ position: 'absolute', bottom: 0, right: '-4%', height: '100%', width: '100%', objectFit: 'contain', objectPosition: 'bottom left' }}
+        />
+        {/* Fade Holloway into center */}
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to left, transparent 30%, rgba(7,30,48,0.85) 100%)' }} />
+      </div>
+
       {/* Bottom vignette */}
-      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '35%', background: 'linear-gradient(to top, rgba(0,0,0,0.85), transparent)' }} />
+      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '30%', background: 'linear-gradient(to top, rgba(0,0,0,0.9), transparent)', zIndex: 3 }} />
 
-      {/* Center content */}
-      <div style={{ position: 'relative', zIndex: 10, minHeight: '620px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '80px 16px 60px' }}>
+      {/* Center text overlay */}
+      <div style={{ position: 'relative', zIndex: 10, minHeight: '620px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '80px 20px 56px' }}>
 
-        {/* Event label */}
-        <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 'clamp(0.8rem, 1.8vw, 1rem)', letterSpacing: '0.25em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)', marginBottom: '12px' }}>
+        <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 'clamp(0.75rem, 1.8vw, 0.95rem)', letterSpacing: '0.3em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.65)', marginBottom: '8px' }}>
           UFC 329
         </p>
 
-        {/* Fighter 1 */}
-        <h1 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 'clamp(3.5rem, 11vw, 7.5rem)', lineHeight: 0.88, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#FFFFFF', margin: 0, textShadow: '0 4px 40px rgba(0,0,0,0.5)' }}>
-          {f1Last}
+        <h1 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 'clamp(3rem, 10vw, 7rem)', lineHeight: 0.9, letterSpacing: '0.02em', textTransform: 'uppercase', color: '#FFFFFF', margin: 0, textShadow: '0 2px 30px rgba(0,0,0,0.8)' }}>
+          McGregor
         </h1>
 
-        {/* VS */}
-        <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 'clamp(1rem, 2.5vw, 1.6rem)', letterSpacing: '0.3em', color: 'rgba(255,255,255,0.75)', margin: '6px 0' }}>
-          VS
+        <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 600, fontSize: 'clamp(0.9rem, 2vw, 1.3rem)', letterSpacing: '0.25em', color: 'rgba(255,255,255,0.7)', margin: '4px 0' }}>
+          vs
         </p>
 
-        {/* Fighter 2 */}
-        <h1 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 'clamp(3.5rem, 11vw, 7.5rem)', lineHeight: 0.88, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#FFFFFF', margin: 0, textShadow: '0 4px 40px rgba(0,0,0,0.5)' }}>
-          {f2Last} 2
+        <h1 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 'clamp(3rem, 10vw, 7rem)', lineHeight: 0.9, letterSpacing: '0.02em', textTransform: 'uppercase', color: '#FFFFFF', margin: 0, textShadow: '0 2px 30px rgba(0,0,0,0.8)' }}>
+          Holloway 2
         </h1>
 
-        {/* Divider */}
-        <div style={{ width: '40px', height: '2px', backgroundColor: '#D20A0A', margin: '24px auto' }} />
-
-        {/* Date / venue */}
-        <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 600, fontSize: 'clamp(0.85rem, 1.8vw, 1.05rem)', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.85)', marginBottom: '4px' }}>
-          Sat, Jul 11 / 9:00 PM EDT
-        </p>
-        <p style={{ fontFamily: "'Barlow', sans-serif", fontWeight: 400, fontSize: 'clamp(0.78rem, 1.5vw, 0.9rem)', color: 'rgba(255,255,255,0.5)', marginBottom: '32px', letterSpacing: '0.04em' }}>
-          {nextEvent.location}
-        </p>
-
-        {/* Buttons */}
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
+        {/* Buttons — white solid / white outline, matching UFC.com style */}
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center', margin: '28px 0 24px' }}>
           <Link
             href={`/events/${nextEvent.id}`}
-            style={{
-              fontFamily: "'Barlow Condensed', sans-serif",
-              fontWeight: 800,
-              fontSize: '0.85rem',
-              letterSpacing: '0.15em',
-              textTransform: 'uppercase',
-              backgroundColor: '#FFFFFF',
-              color: '#000000',
-              padding: '12px 28px',
-              textDecoration: 'none',
-              display: 'inline-block',
-            }}
+            style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: '0.8rem', letterSpacing: '0.15em', textTransform: 'uppercase', backgroundColor: '#FFFFFF', color: '#000000', padding: '11px 26px', textDecoration: 'none', display: 'inline-block' }}
           >
-            View Fight Card
+            How to Watch
           </Link>
           <a
-            href="https://ufc.ac/4v2K4zW"
+            href="https://www.ufc.com/tickets"
             target="_blank"
             rel="noopener noreferrer"
-            style={{
-              fontFamily: "'Barlow Condensed', sans-serif",
-              fontWeight: 800,
-              fontSize: '0.85rem',
-              letterSpacing: '0.15em',
-              textTransform: 'uppercase',
-              backgroundColor: 'transparent',
-              color: '#FFFFFF',
-              padding: '12px 28px',
-              textDecoration: 'none',
-              display: 'inline-block',
-              border: '2px solid rgba(255,255,255,0.6)',
-            }}
+            style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: '0.8rem', letterSpacing: '0.15em', textTransform: 'uppercase', backgroundColor: 'transparent', color: '#FFFFFF', padding: '11px 26px', textDecoration: 'none', display: 'inline-block', border: '2px solid rgba(255,255,255,0.7)' }}
           >
-            Watch on Paramount+
+            Buy Tickets
           </a>
         </div>
+
+        {/* Date / venue */}
+        <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 600, fontSize: 'clamp(0.85rem, 1.8vw, 1.05rem)', letterSpacing: '0.06em', color: 'rgba(255,255,255,0.9)', marginBottom: '4px' }}>
+          Sat, Jul 11 / 9:00 PM EDT
+        </p>
+        <p style={{ fontFamily: "'Barlow', sans-serif", fontWeight: 400, fontSize: 'clamp(0.78rem, 1.4vw, 0.88rem)', color: 'rgba(255,255,255,0.55)', letterSpacing: '0.02em' }}>
+          T-Mobile Arena, Las Vegas United States
+        </p>
       </div>
     </section>
   );
