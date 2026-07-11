@@ -104,12 +104,17 @@ function HeroSection() {
 
   return (
     <section style={{ position: 'relative', width: '100%', minHeight: '620px', overflow: 'hidden', backgroundColor: '#000' }}>
-      {/* Face-off hero image — full width, matches UFC.com reference */}
-      <img
-        src="/faceoff-hero.jpg"
-        alt="McGregor vs Holloway 2 face-off"
+      {/* Animated face-off video — Higgsfield img2video from staredown photo */}
+      <video
+        autoPlay
+        muted
+        loop
+        playsInline
         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', zIndex: 0 }}
-      />
+        poster="/faceoff-hero.jpg"
+      >
+        <source src="/faceoff-hero.mp4" type="video/mp4" />
+      </video>
       {/* Gradient: darken top + strong bottom for text legibility */}
       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.1) 35%, rgba(0,0,0,0.15) 55%, rgba(0,0,0,0.85) 100%)', zIndex: 1 }} />
 
