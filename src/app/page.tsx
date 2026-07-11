@@ -53,7 +53,7 @@ const upcomingEvents = [
       { fighter1: 'Paddy Pimblett', fighter2: 'Benoit Saint Denis', division: 'Lightweight Bout', rank1: '#4', rank2: '#8', odds1: -175, odds2: 148 },
       { fighter1: 'Cory Sandhagen', fighter2: 'Mario Bautista', division: 'Bantamweight Bout', rank1: '#2', rank2: '#5', odds1: -135, odds2: 116 },
       { fighter1: "Lone'er Kavanagh", fighter2: 'Brandon Royval', division: 'Flyweight Bout', rank1: '#6', rank2: '#7', odds1: -210, odds2: 176 },
-      { fighter1: 'Kevin Lee', fighter2: 'Terrance McKinney', division: 'Lightweight Bout', rank1: '#12', rank2: null, odds1: -130, odds2: 110 },
+      { fighter1: 'Bobby Green', fighter2: 'Terrance McKinney', division: 'Lightweight Bout', rank1: null, rank2: null, odds1: -145, odds2: 122 },
     ],
     fights: 13,
   },
