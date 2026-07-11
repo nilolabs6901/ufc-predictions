@@ -340,13 +340,24 @@ function FightCardSection() {
               pickProb = aWin ? aProb : bProb;
             }
 
-            const avatar = (src: string | null) => (
-              <span style={{ width: '40px', height: '40px', flexShrink: 0, borderRadius: '50%', overflow: 'hidden', backgroundColor: '#2a2a2a', display: 'inline-block', border: '1px solid rgba(255,255,255,0.1)' }}>
-                {src && (
-                  <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top' }} />
-                )}
-              </span>
-            );
+            const avatar = (src: string | null, name: string) => {
+              const initials = name.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase();
+              return (
+                <span style={{ width: '40px', height: '40px', flexShrink: 0, borderRadius: '50%', overflow: 'hidden', backgroundColor: '#1a1a1a', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,255,255,0.15)', position: 'relative' }}>
+                  {src ? (
+                    <img
+                      src={src}
+                      alt={name}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top' }}
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling && ((e.target as HTMLImageElement).nextElementSibling as HTMLElement).style.setProperty('display', 'flex'); }}
+                    />
+                  ) : null}
+                  <span style={{ display: src ? 'none' : 'flex', position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center', fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: '0.8rem', color: 'rgba(255,255,255,0.7)', letterSpacing: '0.03em' }}>
+                    {initials}
+                  </span>
+                </span>
+              );
+            };
 
             return (
               <div
@@ -375,7 +386,7 @@ function FightCardSection() {
                         {fight.rank1}
                       </span>
                     )}
-                    {avatar(imgA)}
+                    {avatar(imgA, fight.fighter1)}
                     <div>
                       <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: '1rem', textTransform: 'uppercase', color: aWin && pred ? '#4ade80' : '#FFFFFF', letterSpacing: '0.03em' }}>{fight.fighter1}</p>
                       {fight.odds1 !== null && (
@@ -406,7 +417,7 @@ function FightCardSection() {
                         </p>
                       )}
                     </div>
-                    {avatar(imgB)}
+                    {avatar(imgB, fight.fighter2)}
                     {fight.rank2 && (
                       <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '0.7rem', color: fight.rank2 === 'C' || fight.rank2 === 'IC' ? '#C9A84C' : 'rgba(255,255,255,0.4)', letterSpacing: '0.05em', minWidth: '20px', textAlign: 'right' }}>
                         {fight.rank2}
