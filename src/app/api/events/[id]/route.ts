@@ -10,8 +10,8 @@ export async function GET(
   try {
     const { id } = await params;
 
-    const event = await prisma.event.findUnique({
-      where: { id },
+    const event = await prisma.event.findFirst({
+      where: { OR: [{ id }, { ufcStatsId: id }] },
       include: {
         fights: {
           orderBy: { fightOrder: 'desc' },
